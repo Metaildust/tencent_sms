@@ -1,0 +1,12 @@
+name: tencent_sms_serverpod
+description: 腾讯云短信的 Serverpod 集成扩展 - 支持从 passwords.yaml 读取配置
+version: 0.1.0
+repository: https://github.com/Metaildust/tencent_sms
+homepage: https://pub.dev/packages/tencent_sms_serverpod
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  tencent_sms: ^0.1.0
+  serverpod: ^3.0.0
