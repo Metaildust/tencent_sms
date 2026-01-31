@@ -3,28 +3,28 @@
 [![Pub Version](https://img.shields.io/pub/v/tencent_sms)](https://pub.dev/packages/tencent_sms)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Tencent Cloud SMS SDK for Dart/Flutter - verification code sending, batch sending, CSV template mapping, multi-scenario templates.
+腾讯云短信 SDK for Dart/Flutter - 支持验证码发送、批量发送、CSV模板映射、多场景模板。
 
-[中文文档](README.md)
+[English](README.md)
 
-## Features
+## 功能特性
 
-- **Verification Code Sending** - Quick verification code SMS
-- **Batch Sending** - Support batch SMS sending
-- **CSV Template Mapping** - Manage template IDs via CSV files
-- **Multi-scenario Templates** - Login, registration, password reset templates
-- **TC3-HMAC-SHA256 Signature** - Tencent Cloud API v3 signature algorithm
+- **验证码发送** - 快速发送验证码短信
+- **批量发送** - 支持批量发送短信
+- **CSV 模板映射** - 通过 CSV 文件管理模板 ID
+- **多场景模板** - 登录、注册、重置密码等场景模板
+- **TC3-HMAC-SHA256 签名** - 腾讯云 API v3 签名算法
 
-## Package Structure
+## 包结构
 
-| Package | Description |
-|---------|-------------|
-| [tencent_sms](packages/tencent_sms/) | Core package, pure Dart |
-| [tencent_sms_serverpod](packages/tencent_sms_serverpod/) | Serverpod integration |
+| 包名 | 说明 |
+|------|------|
+| [tencent_sms](packages/tencent_sms/) | 核心包，纯 Dart 实现 |
+| [tencent_sms_serverpod](packages/tencent_sms_serverpod/) | Serverpod 集成扩展 |
 
-## Quick Start
+## 快速开始
 
-### Pure Dart/Flutter
+### 纯 Dart/Flutter
 
 ```yaml
 dependencies:
@@ -38,7 +38,7 @@ final client = TencentSmsClient(TencentSmsConfig(
   secretId: 'your-secret-id',
   secretKey: 'your-secret-key',
   sdkAppId: '1400000000',
-  signName: 'YourSignName',
+  signName: '你的签名',
 ));
 
 await client.sendVerificationCode(
@@ -49,24 +49,24 @@ await client.sendVerificationCode(
 client.close();
 ```
 
-### Serverpod Integration
+### Serverpod 集成
 
 ```yaml
 dependencies:
   tencent_sms_serverpod: ^0.1.0
 ```
 
-Configure `config/passwords.yaml`:
+配置 `config/passwords.yaml`:
 
 ```yaml
 shared:
   tencentSmsSecretId: 'your-secret-id'
   tencentSmsSecretKey: 'your-secret-key'
   tencentSmsSdkAppId: '1400000000'
-  tencentSmsSignName: 'YourSignName'
+  tencentSmsSignName: '你的签名'
 ```
 
-Usage:
+使用：
 
 ```dart
 import 'package:tencent_sms_serverpod/tencent_sms_serverpod.dart';
@@ -75,7 +75,7 @@ final config = TencentSmsConfigServerpod.fromServerpod(pod);
 final client = TencentSmsClient(config);
 ```
 
-## Integration with serverpod_auth_sms
+## 与 serverpod_auth_sms 集成
 
 ```dart
 import 'package:tencent_sms_serverpod/tencent_sms_serverpod.dart';
@@ -90,11 +90,11 @@ SmsIdpConfigFromPasswords(
 )
 ```
 
-## Documentation
+## 文档
 
-- [Core Package Docs](packages/tencent_sms/README.md)
-- [Serverpod Integration Docs](packages/tencent_sms_serverpod/README.md)
+- [核心包文档](packages/tencent_sms/README.md)
+- [Serverpod 集成文档](packages/tencent_sms_serverpod/README.md)
 
-## License
+## 许可证
 
 MIT License

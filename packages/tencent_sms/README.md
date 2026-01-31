@@ -2,27 +2,27 @@
 
 [![pub package](https://img.shields.io/pub/v/tencent_sms.svg)](https://pub.dev/packages/tencent_sms)
 
-腾讯云短信 SDK for Dart/Flutter - 支持验证码发送、批量发送、CSV模板映射、多场景模板。
+Tencent Cloud SMS SDK for Dart/Flutter - Supporting verification code sending, batch sending, CSV template mapping, and multi-scene templates.
 
-[English](README.en.md)
+[中文文档](README.zh.md)
 
-## 功能特性
+## Features
 
-- **验证码发送** - 单条验证码短信发送
-- **批量发送** - 支持多手机号批量发送
-- **多场景模板** - 登录/注册/重置密码使用不同模板
-- **CSV 模板映射** - 支持从腾讯云控制台导出的 CSV 文件读取模板 ID
-- **TC3 签名** - 使用最新的腾讯云 API 签名算法
-- **纯 Dart 实现** - 不依赖任何框架，支持 Flutter 和服务端
+- **Verification Code Sending** - Single verification code SMS sending
+- **Batch Sending** - Support batch sending to multiple phone numbers
+- **Multi-scene Templates** - Different templates for login/registration/password reset
+- **CSV Template Mapping** - Support reading template IDs from CSV exported from Tencent Cloud console
+- **TC3 Signature** - Using the latest Tencent Cloud API signature algorithm
+- **Pure Dart** - No framework dependency, supports Flutter and server-side
 
-## 安装
+## Installation
 
 ```yaml
 dependencies:
   tencent_sms: ^0.1.0
 ```
 
-## 快速开始
+## Quick Start
 
 ```dart
 import 'package:tencent_sms/tencent_sms.dart';
@@ -32,39 +32,39 @@ void main() async {
     secretId: 'your-secret-id',
     secretKey: 'your-secret-key',
     smsSdkAppId: '1400000000',
-    signName: '你的签名',
+    signName: 'YourSignName',
     region: 'ap-guangzhou',
-    verificationTemplateId: '123456', // 验证码模板 ID
+    verificationTemplateId: '123456',
   );
 
   final client = TencentSmsClient(config);
 
   try {
     final response = await client.sendVerificationCode(
-      phoneNumber: '13800138000', // 自动转为 +8613800138000
+      phoneNumber: '+8613800138000',
       verificationCode: '123456',
     );
-    print('发送成功: ${response.requestId}');
+    print('Sent successfully: ${response.requestId}');
   } catch (e) {
-    print('发送失败: $e');
+    print('Failed to send: $e');
   } finally {
     client.close();
   }
 }
 ```
 
-## 使用方法
+## Usage
 
-### 发送验证码
+### Send Verification Code
 
 ```dart
-// 单条验证码（使用默认模板）
+// Single verification code (using default template)
 await client.sendVerificationCode(
   phoneNumber: '+8613800138000',
   verificationCode: '123456',
 );
 
-// 指定模板 ID
+// Specify template ID
 await client.sendVerificationCode(
   phoneNumber: '+8613800138000',
   verificationCode: '123456',
@@ -72,27 +72,27 @@ await client.sendVerificationCode(
 );
 ```
 
-### 多场景模板
+### Multi-scene Templates
 
 ```dart
 final config = TencentSmsConfig(
-  // ...基本配置
+  // ...basic config
   templateCsvPath: 'config/sms/templates.csv',
-  verificationTemplateNameLogin: '登录验证码',
-  verificationTemplateNameRegister: '注册验证码',
-  verificationTemplateNameResetPassword: '重置密码验证码',
+  verificationTemplateNameLogin: 'Login Verification',
+  verificationTemplateNameRegister: 'Registration Verification',
+  verificationTemplateNameResetPassword: 'Password Reset Verification',
 );
 
 final client = TencentSmsClient(config);
 
-// 登录场景
+// Login scene
 await client.sendVerificationCodeForScene(
   scene: SmsVerificationScene.login,
   phoneNumber: '+8613800138000',
   verificationCode: '123456',
 );
 
-// 注册场景
+// Registration scene
 await client.sendVerificationCodeForScene(
   scene: SmsVerificationScene.register,
   phoneNumber: '+8613800138000',
@@ -100,96 +100,76 @@ await client.sendVerificationCodeForScene(
 );
 ```
 
-### 批量发送
+### Batch Sending
 
 ```dart
 final response = await client.sendSms(
   phoneNumbers: ['+8613800138000', '+8613800138001'],
   templateId: '123456',
-  templateParams: ['订单已发货', '顺丰快递', 'SF123456'],
+  templateParams: ['Order shipped', 'SF Express', 'SF123456'],
 );
 
 for (final status in response.statuses) {
-  print('${status.phoneNumber}: ${status.isOk ? '成功' : status.message}');
+  print('${status.phoneNumber}: ${status.isOk ? 'Success' : status.message}');
 }
 ```
 
-### CSV 模板映射
+## Configuration
 
-从腾讯云短信控制台导出模板列表 CSV 文件，放置在项目中：
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `secretId` | Yes | Tencent Cloud SecretId |
+| `secretKey` | Yes | Tencent Cloud SecretKey |
+| `smsSdkAppId` | Yes | SMS SDK AppID |
+| `signName` | Yes | SMS signature |
+| `region` | No | Region, default `ap-guangzhou` |
+| `verificationTemplateId` | No | Verification template ID (highest priority) |
+| `templateCsvPath` | No | Template CSV file path |
+| `verificationTemplateNameLogin` | No | Login template name |
+| `verificationTemplateNameRegister` | No | Registration template name |
+| `verificationTemplateNameResetPassword` | No | Password reset template name |
 
-```csv
-模板ID,模板名称,模板内容,审核状态,创建时间
-123456,登录验证码,您的登录验证码是{1}...,已通过,2024-01-01
-123457,注册验证码,您的注册验证码是{1}...,已通过,2024-01-01
-```
+## Phone Number Format
 
-然后配置：
+Supports the following formats, automatically converted to E.164 format:
 
-```dart
-final config = TencentSmsConfig(
-  // ...基本配置
-  templateCsvPath: 'config/sms/templates.csv',
-  verificationTemplateNameLogin: '登录验证码',
-);
-```
+- `+8613800138000` - E.164 format (used as-is)
+- `13800138000` - 11-digit Chinese mobile number (auto-prefixed with +86)
+- `008613800138000` - International format (auto-converted)
 
-## 配置说明
-
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `secretId` | 是 | 腾讯云 SecretId |
-| `secretKey` | 是 | 腾讯云 SecretKey |
-| `smsSdkAppId` | 是 | 短信应用 SDK AppID |
-| `signName` | 是 | 短信签名内容 |
-| `region` | 否 | 地域，默认 `ap-guangzhou` |
-| `verificationTemplateId` | 否 | 验证码模板 ID（优先级最高）|
-| `templateCsvPath` | 否 | 模板 CSV 文件路径 |
-| `verificationTemplateNameLogin` | 否 | 登录模板名称 |
-| `verificationTemplateNameRegister` | 否 | 注册模板名称 |
-| `verificationTemplateNameResetPassword` | 否 | 重置密码模板名称 |
-
-## 手机号格式
-
-支持以下格式，自动转换为 E.164 格式：
-
-- `+8613800138000` - E.164 格式（原样使用）
-- `13800138000` - 国内 11 位手机号（自动添加 +86）
-- `008613800138000` - 国际格式（自动转换）
-
-## 异常处理
+## Exception Handling
 
 ```dart
 try {
   await client.sendVerificationCode(...);
 } on TencentSmsConfigException catch (e) {
-  // 配置错误（如模板未配置）
-  print('配置错误: ${e.message}');
+  // Configuration error
+  print('Config error: ${e.message}');
 } on TencentSmsSendException catch (e) {
-  // 发送失败（如余额不足、频率限制）
-  print('发送失败: ${e.message} (${e.code})');
+  // Send failure
+  print('Send failed: ${e.message} (${e.code})');
 } on TencentSmsHttpException catch (e) {
-  // HTTP 请求失败
-  print('网络错误: HTTP ${e.statusCode}');
+  // HTTP request failure
+  print('Network error: HTTP ${e.statusCode}');
 }
 ```
 
-## Serverpod 集成
+## Serverpod Integration
 
-如果你使用 Serverpod，推荐配合 `tencent_sms_serverpod` 包使用，支持从 `passwords.yaml` 读取配置：
+If you use Serverpod, we recommend using `tencent_sms_serverpod` package for reading config from `passwords.yaml`:
 
 ```yaml
 dependencies:
   tencent_sms_serverpod: ^0.1.0
 ```
 
-详见 [tencent_sms_serverpod](https://pub.dev/packages/tencent_sms_serverpod)。
+See [tencent_sms_serverpod](https://pub.dev/packages/tencent_sms_serverpod) for details.
 
-## 相关资源
+## Resources
 
-- [腾讯云短信文档](https://cloud.tencent.com/document/product/382)
-- [SendSms API 文档](https://cloud.tencent.com/document/product/382/55981)
+- [Tencent Cloud SMS Documentation](https://cloud.tencent.com/document/product/382)
+- [SendSms API Documentation](https://cloud.tencent.com/document/product/382/55981)
 
-## 许可证
+## License
 
 MIT License
