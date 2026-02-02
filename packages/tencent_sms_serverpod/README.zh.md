@@ -16,7 +16,7 @@
 
 ```yaml
 dependencies:
-  tencent_sms_serverpod: ^0.1.1
+  tencent_sms_serverpod: ^0.1.0
 ```
 
 ## 配置

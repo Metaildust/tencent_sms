@@ -1,8 +1,9 @@
-/// 腾讯云短信 SDK for Dart/Flutter
+/// Tencent Cloud SMS SDK for Dart/Flutter.
 ///
-/// 支持验证码发送、批量发送、CSV模板映射、多场景模板。
+/// Supports verification code sending, batch sending, CSV template mapping,
+/// and multi-scene templates.
 ///
-/// ## 快速开始
+/// ## Quick Start
 ///
 /// ```dart
 /// import 'package:tencent_sms/tencent_sms.dart';
@@ -23,10 +24,22 @@
 ///   templateId: 'your-template-id',
 /// );
 /// ```
+///
+/// ## Localization
+///
+/// By default, error messages are in English. Use `SmsLocalizationsZh` for Chinese:
+///
+/// ```dart
+/// final client = TencentSmsClient(
+///   config,
+///   localizations: const SmsLocalizationsZh(),
+/// );
+/// ```
 library tencent_sms;
 
-export 'src/tencent_sms_config.dart';
-export 'src/tencent_sms_client.dart';
+export 'src/sms_localizations.dart';
 export 'src/sms_send_response.dart';
 export 'src/sms_verification_scene.dart';
+export 'src/tencent_sms_client.dart';
+export 'src/tencent_sms_config.dart';
 export 'src/tencent_sms_exception.dart';

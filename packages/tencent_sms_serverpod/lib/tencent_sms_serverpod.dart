@@ -1,28 +1,30 @@
-/// 腾讯云短信的 Serverpod 集成扩展
+/// Tencent Cloud SMS Serverpod integration extension.
 ///
-/// 支持从 Serverpod 的 passwords.yaml 读取配置。
+/// Supports reading configuration from Serverpod's passwords.yaml.
 ///
-/// ## 快速开始
+/// ## Quick Start
 ///
-/// 1. 在 `config/passwords.yaml` 中配置：
+/// 1. Configure in `config/passwords.yaml`:
 ///
 /// ```yaml
 /// shared:
 ///   tencentSmsSecretId: 'your-secret-id'
 ///   tencentSmsSecretKey: 'your-secret-key'
 ///   tencentSmsSdkAppId: '1400000000'
-///   tencentSmsSignName: '你的签名'
+///   tencentSmsSignName: 'YourSignName'
 ///   tencentSmsRegion: 'ap-guangzhou'
 ///   tencentSmsVerificationTemplateId: '123456'
 /// ```
 ///
-/// 2. 在代码中使用：
+/// 2. Use in code:
 ///
 /// ```dart
 /// import 'package:tencent_sms_serverpod/tencent_sms_serverpod.dart';
 ///
 /// final config = TencentSmsConfigServerpod.fromSession(session);
 /// final client = TencentSmsClient(config);
+/// // Or with Chinese error messages:
+/// // final client = TencentSmsClient(config, localizations: const SmsLocalizationsZh());
 ///
 /// await client.sendVerificationCode(
 ///   phoneNumber: '+8613800138000',
@@ -33,5 +35,5 @@ library tencent_sms_serverpod;
 
 export 'package:tencent_sms/tencent_sms.dart';
 
-export 'src/tencent_sms_config_serverpod.dart';
 export 'src/sms_auth_callback_helper.dart';
+export 'src/tencent_sms_config_serverpod.dart';

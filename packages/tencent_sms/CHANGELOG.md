@@ -1,3 +1,12 @@
+## 0.1.1
+
+- **Breaking Change**: Error messages are now in English by default
+- Added `SmsLocalizations` interface for custom error message localization
+- Added `SmsLocalizationsEn` (English, default) and `SmsLocalizationsZh` (Chinese) implementations
+- `TencentSmsClient` now accepts optional `localizations` parameter
+- Updated all documentation comments to English
+- Added comprehensive unit tests (46 tests)
+
 ## 0.1.0
 
 - Initial release

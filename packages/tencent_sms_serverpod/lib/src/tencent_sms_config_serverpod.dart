@@ -1,36 +1,36 @@
 import 'package:serverpod/serverpod.dart';
 import 'package:tencent_sms/tencent_sms.dart';
 
-/// 腾讯云短信配置的 Serverpod 扩展
+/// Tencent Cloud SMS configuration extension for Serverpod.
 ///
-/// 支持从 Serverpod 的 passwords.yaml 读取配置。
+/// Supports reading configuration from Serverpod's passwords.yaml.
 ///
-/// ## passwords.yaml 配置项
+/// ## passwords.yaml Configuration
 ///
 /// ```yaml
 /// shared:
-///   tencentSmsSecretId: 'your-secret-id'          # 必填
-///   tencentSmsSecretKey: 'your-secret-key'        # 必填
-///   tencentSmsSdkAppId: '1400000000'              # 必填
-///   tencentSmsSignName: '你的签名'                 # 必填
-///   tencentSmsRegion: 'ap-guangzhou'              # 可选，默认 ap-guangzhou
-///   tencentSmsVerificationTemplateId: '123456'   # 可选，验证码模板 ID
-///   tencentSmsTemplateCsvPath: 'config/sms/templates.csv'  # 可选
-///   tencentSmsVerificationTemplateNameLogin: '登录验证码'      # 可选
-///   tencentSmsVerificationTemplateNameRegister: '注册验证码'   # 可选
-///   tencentSmsVerificationTemplateNameResetPassword: '重置密码验证码'  # 可选
-///   tencentSmsVerificationTemplateName: '验证码'  # 可选，兼容旧配置
+///   tencentSmsSecretId: 'your-secret-id'          # Required
+///   tencentSmsSecretKey: 'your-secret-key'        # Required
+///   tencentSmsSdkAppId: '1400000000'              # Required
+///   tencentSmsSignName: 'YourSignName'            # Required
+///   tencentSmsRegion: 'ap-guangzhou'              # Optional, default ap-guangzhou
+///   tencentSmsVerificationTemplateId: '123456'   # Optional, verification template ID
+///   tencentSmsTemplateCsvPath: 'config/sms/templates.csv'  # Optional
+///   tencentSmsVerificationTemplateNameLogin: 'LoginTemplate'      # Optional
+///   tencentSmsVerificationTemplateNameRegister: 'RegisterTemplate'   # Optional
+///   tencentSmsVerificationTemplateNameResetPassword: 'ResetTemplate'  # Optional
+///   tencentSmsVerificationTemplateName: 'VerificationTemplate'  # Optional, legacy
 /// ```
 class TencentSmsConfigServerpod {
   TencentSmsConfigServerpod._();
 
-  /// 从 Serverpod Session 创建配置
+  /// Creates configuration from Serverpod Session.
   ///
-  /// 从 passwords.yaml 中读取配置项。
+  /// Reads configuration from passwords.yaml.
   ///
-  /// [session] Serverpod Session 对象
+  /// [session] Serverpod Session object.
   ///
-  /// 抛出 [StateError] 如果必填配置项缺失。
+  /// Throws [StateError] if required configuration is missing.
   static TencentSmsConfig fromSession(Session session) {
     return TencentSmsConfig(
       secretId: _getPasswordOrThrow(session, 'tencentSmsSecretId'),
@@ -60,13 +60,13 @@ class TencentSmsConfigServerpod {
     );
   }
 
-  /// 从 Serverpod 实例创建配置
+  /// Creates configuration from Serverpod instance.
   ///
-  /// 用于在没有 Session 时（如初始化阶段）读取配置。
+  /// Used when no Session is available (e.g., during initialization).
   ///
-  /// [serverpod] Serverpod 实例
+  /// [serverpod] Serverpod instance.
   ///
-  /// 抛出 [StateError] 如果必填配置项缺失。
+  /// Throws [StateError] if required configuration is missing.
   static TencentSmsConfig fromServerpod(Serverpod serverpod) {
     return TencentSmsConfig(
       secretId:

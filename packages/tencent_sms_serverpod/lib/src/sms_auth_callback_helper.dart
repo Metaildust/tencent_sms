@@ -1,9 +1,9 @@
 import 'package:serverpod/serverpod.dart';
 import 'package:tencent_sms/tencent_sms.dart';
 
-/// 为 serverpod_auth_sms 创建短信发送回调的辅助类
+/// Helper class for creating SMS send callbacks for serverpod_auth_sms.
 ///
-/// ## 使用示例
+/// ## Usage Example
 ///
 /// ```dart
 /// import 'package:tencent_sms_serverpod/tencent_sms_serverpod.dart';
@@ -12,11 +12,13 @@ import 'package:tencent_sms/tencent_sms.dart';
 /// void run(List<String> args) async {
 ///   final pod = Serverpod(args, Protocol(), Endpoints());
 ///
-///   // 创建腾讯云短信客户端
+///   // Create Tencent Cloud SMS client
 ///   final smsConfig = TencentSmsConfigServerpod.fromServerpod(pod);
 ///   final smsClient = TencentSmsClient(smsConfig);
+///   // Or with Chinese error messages:
+///   // final smsClient = TencentSmsClient(smsConfig, localizations: const SmsLocalizationsZh());
 ///
-///   // 创建回调辅助类
+///   // Create callback helper
 ///   final smsHelper = SmsAuthCallbackHelper(smsClient);
 ///
 ///   pod.initializeAuthServices(
@@ -37,22 +39,22 @@ import 'package:tencent_sms/tencent_sms.dart';
 class SmsAuthCallbackHelper {
   final TencentSmsClient _client;
 
-  /// 创建短信认证回调辅助类
+  /// Creates an SMS authentication callback helper.
   ///
-  /// [client] 腾讯云短信客户端
+  /// [client] Tencent Cloud SMS client.
   SmsAuthCallbackHelper(this._client);
 
-  /// 发送注册验证码
+  /// Sends registration verification code.
   ///
-  /// 使用 [SmsVerificationScene.register] 场景的模板。
-  void sendForRegistration(
+  /// Uses the [SmsVerificationScene.register] scene template.
+  Future<void> sendForRegistration(
     Session session, {
     required String phone,
     required UuidValue requestId,
     required String verificationCode,
     required Transaction? transaction,
-  }) {
-    _client.sendVerificationCodeForScene(
+  }) async {
+    await _client.sendVerificationCodeForScene(
       scene: SmsVerificationScene.register,
       phoneNumber: phone,
       verificationCode: verificationCode,
@@ -60,17 +62,17 @@ class SmsAuthCallbackHelper {
     );
   }
 
-  /// 发送登录验证码
+  /// Sends login verification code.
   ///
-  /// 使用 [SmsVerificationScene.login] 场景的模板。
-  void sendForLogin(
+  /// Uses the [SmsVerificationScene.login] scene template.
+  Future<void> sendForLogin(
     Session session, {
     required String phone,
     required UuidValue requestId,
     required String verificationCode,
     required Transaction? transaction,
-  }) {
-    _client.sendVerificationCodeForScene(
+  }) async {
+    await _client.sendVerificationCodeForScene(
       scene: SmsVerificationScene.login,
       phoneNumber: phone,
       verificationCode: verificationCode,
@@ -78,17 +80,17 @@ class SmsAuthCallbackHelper {
     );
   }
 
-  /// 发送绑定验证码
+  /// Sends bind verification code.
   ///
-  /// 使用 [SmsVerificationScene.login] 场景的模板（与登录共用）。
-  void sendForBind(
+  /// Uses the [SmsVerificationScene.login] scene template (shared with login).
+  Future<void> sendForBind(
     Session session, {
     required String phone,
     required UuidValue requestId,
     required String verificationCode,
     required Transaction? transaction,
-  }) {
-    _client.sendVerificationCodeForScene(
+  }) async {
+    await _client.sendVerificationCodeForScene(
       scene: SmsVerificationScene.login,
       phoneNumber: phone,
       verificationCode: verificationCode,
@@ -96,17 +98,17 @@ class SmsAuthCallbackHelper {
     );
   }
 
-  /// 发送重置密码验证码
+  /// Sends password reset verification code.
   ///
-  /// 使用 [SmsVerificationScene.resetPassword] 场景的模板。
-  void sendForResetPassword(
+  /// Uses the [SmsVerificationScene.resetPassword] scene template.
+  Future<void> sendForResetPassword(
     Session session, {
     required String phone,
     required UuidValue requestId,
     required String verificationCode,
     required Transaction? transaction,
-  }) {
-    _client.sendVerificationCodeForScene(
+  }) async {
+    await _client.sendVerificationCodeForScene(
       scene: SmsVerificationScene.resetPassword,
       phoneNumber: phone,
       verificationCode: verificationCode,

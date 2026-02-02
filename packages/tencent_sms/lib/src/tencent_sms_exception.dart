@@ -1,4 +1,4 @@
-/// 腾讯云短信异常基类
+/// Tencent Cloud SMS exception base class.
 class TencentSmsException implements Exception {
   final String message;
   final String? code;
@@ -13,13 +13,13 @@ class TencentSmsException implements Exception {
       'TencentSmsException: $message${code != null ? ' (code: $code)' : ''}';
 }
 
-/// 配置错误异常
+/// Configuration error exception.
 class TencentSmsConfigException extends TencentSmsException {
   const TencentSmsConfigException({required super.message})
       : super(code: 'CONFIG_ERROR');
 }
 
-/// 短信发送失败异常
+/// SMS send failure exception.
 class TencentSmsSendException extends TencentSmsException {
   const TencentSmsSendException({
     required super.message,
@@ -27,7 +27,7 @@ class TencentSmsSendException extends TencentSmsException {
   });
 }
 
-/// HTTP 请求失败异常
+/// HTTP request failure exception.
 class TencentSmsHttpException extends TencentSmsException {
   final int statusCode;
 

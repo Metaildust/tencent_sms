@@ -4,34 +4,54 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
+import 'sms_localizations.dart';
 import 'sms_send_response.dart';
 import 'sms_verification_scene.dart';
 import 'tencent_sms_config.dart';
 import 'tencent_sms_exception.dart';
 
-/// 日志回调函数类型
+/// Log callback function type.
 typedef LogCallback = void Function(String message);
 
-/// 腾讯云短信客户端
+/// Tencent Cloud SMS Client.
 ///
-/// ## 基本用法
+/// ## Basic Usage
 ///
 /// ```dart
 /// final client = TencentSmsClient(config);
 ///
-/// // 发送验证码
+/// // Send verification code
 /// await client.sendVerificationCode(
 ///   phoneNumber: '+8613800138000',
 ///   verificationCode: '123456',
 ///   templateId: '123456',
 /// );
 ///
-/// // 批量发送
+/// // Batch send
 /// await client.sendSms(
 ///   phoneNumbers: ['+8613800138000', '+8613800138001'],
 ///   templateId: '123456',
-///   templateParams: ['验证码内容'],
+///   templateParams: ['123456'],
 /// );
+/// ```
+///
+/// ## Localization
+///
+/// By default, error messages are in English. To use Chinese messages:
+///
+/// ```dart
+/// final client = TencentSmsClient(
+///   config,
+///   localizations: const SmsLocalizationsZh(),
+/// );
+/// ```
+///
+/// Or provide your own implementation:
+///
+/// ```dart
+/// class MySmsLocalizations implements SmsLocalizations {
+///   // ... your custom messages
+/// }
 /// ```
 class TencentSmsClient {
   static const _host = 'sms.tencentcloudapi.com';
@@ -39,6 +59,7 @@ class TencentSmsClient {
   static const _version = '2021-01-11';
 
   final TencentSmsConfig config;
+  final SmsLocalizations localizations;
   final http.Client _client;
   final bool _ownsClient;
   final LogCallback? _log;
@@ -46,16 +67,19 @@ class TencentSmsClient {
   Map<String, String>? _cachedTemplateIdByName;
   bool _templateMapLoaded = false;
 
-  /// 创建腾讯云短信客户端
+  /// Creates a Tencent Cloud SMS client.
   ///
-  /// [config] 腾讯云短信配置
-  /// [client] 可选的 HTTP 客户端（用于测试或自定义）
-  /// [log] 可选的日志回调
+  /// [config] Tencent Cloud SMS configuration.
+  /// [localizations] Error message localizations (default: English).
+  /// [client] Optional HTTP client (for testing or customization).
+  /// [log] Optional log callback.
   TencentSmsClient(
     this.config, {
+    SmsLocalizations localizations = const SmsLocalizationsEn(),
     http.Client? client,
     LogCallback? log,
-  })  : _client = client ?? http.Client(),
+  })  : localizations = localizations,
+        _client = client ?? http.Client(),
         _ownsClient = client == null,
         _log = log;
 
@@ -86,7 +110,9 @@ class TencentSmsClient {
         );
 
     if (resolvedTemplateId == null || resolvedTemplateId.isEmpty) {
-      throw const TencentSmsConfigException(message: '未配置验证码模板 ID');
+      throw TencentSmsConfigException(
+        message: localizations.verificationTemplateNotConfigured,
+      );
     }
 
     final response = await sendSms(
@@ -104,7 +130,9 @@ class TencentSmsClient {
         '${response.error?.message ?? ''}',
       );
       throw TencentSmsSendException(
-        message: '短信发送失败: ${response.error?.message ?? 'Unknown error'}',
+        message: localizations.smsSendFailed(
+          response.error?.message ?? 'Unknown error',
+        ),
         code: response.error?.code,
       );
     }
@@ -112,13 +140,13 @@ class TencentSmsClient {
     return response;
   }
 
-  /// 按场景发送验证码短信（单个手机号）
+  /// Send verification code by scene (single phone number).
   ///
-  /// [scene] 验证码场景（登录/注册/重置密码）
-  /// [phoneNumber] 手机号码
-  /// [verificationCode] 验证码内容
-  /// [sessionContext] 用户自定义的 Session 内容
-  /// [throwOnError] 发送失败时是否抛出异常
+  /// [scene] Verification scene (login/register/resetPassword).
+  /// [phoneNumber] Phone number.
+  /// [verificationCode] Verification code content.
+  /// [sessionContext] Custom session content.
+  /// [throwOnError] Whether to throw exception on failure.
   Future<SmsSendResponse> sendVerificationCodeForScene({
     required SmsVerificationScene scene,
     required String phoneNumber,
@@ -133,7 +161,9 @@ class TencentSmsClient {
 
     if (templateId == null || templateId.isEmpty) {
       throw TencentSmsConfigException(
-        message: '未配置场景 ${scene.name} 的验证码模板 ID',
+        message: localizations.verificationTemplateNotConfiguredForScene(
+          scene.name,
+        ),
       );
     }
 
@@ -152,7 +182,9 @@ class TencentSmsClient {
         '${response.error?.message ?? ''}',
       );
       throw TencentSmsSendException(
-        message: '短信发送失败: ${response.error?.message ?? 'Unknown error'}',
+        message: localizations.smsSendFailed(
+          response.error?.message ?? 'Unknown error',
+        ),
         code: response.error?.code,
       );
     }
@@ -160,16 +192,16 @@ class TencentSmsClient {
     return response;
   }
 
-  /// 通用发送短信（支持批量）
+  /// General SMS sending (supports batch).
   ///
-  /// [phoneNumbers] 手机号码列表（支持 E.164 格式或国内 11 位号码）
-  /// [templateId] 模板 ID
-  /// [templateParams] 模板参数列表
-  /// [signName] 短信签名（可选，默认使用配置中的签名）
-  /// [smsSdkAppId] SDK AppID（可选，默认使用配置中的 AppID）
-  /// [sessionContext] 用户自定义的 Session 内容
-  /// [extendCode] 短信码号扩展号
-  /// [senderId] 国际/港澳台短信 SenderId
+  /// [phoneNumbers] Phone number list (supports E.164 format or 11-digit Chinese numbers).
+  /// [templateId] Template ID.
+  /// [templateParams] Template parameter list.
+  /// [signName] SMS signature (optional, defaults to config value).
+  /// [smsSdkAppId] SDK AppID (optional, defaults to config value).
+  /// [sessionContext] Custom session content.
+  /// [extendCode] SMS code extension number.
+  /// [senderId] International/HK/Macau/Taiwan SMS SenderId.
   Future<SmsSendResponse> sendSms({
     required List<String> phoneNumbers,
     required String templateId,
@@ -181,7 +213,9 @@ class TencentSmsClient {
     String? senderId,
   }) async {
     if (phoneNumbers.isEmpty) {
-      throw const TencentSmsConfigException(message: '手机号码不能为空');
+      throw TencentSmsConfigException(
+        message: localizations.phoneNumbersEmpty,
+      );
     }
 
     final payload = <String, dynamic>{
@@ -227,7 +261,7 @@ class TencentSmsClient {
       );
       throw TencentSmsHttpException(
         statusCode: response.statusCode,
-        message: '短信服务请求失败',
+        message: localizations.httpRequestFailed,
       );
     }
 
@@ -269,7 +303,7 @@ class TencentSmsClient {
     final file = File(csvPath);
     if (!await file.exists()) {
       throw TencentSmsConfigException(
-        message: '验证码模板 CSV 不存在: $csvPath',
+        message: localizations.templateCsvNotFound(csvPath),
       );
     }
 
@@ -281,12 +315,18 @@ class TencentSmsClient {
       text = utf8.decode(bytes, allowMalformed: true);
     }
 
-    final templateIdByName = _buildTemplateIdMapFromCsv(text);
+    final templateIdByName = _buildTemplateIdMapFromCsv(
+      text,
+      localizations: localizations,
+    );
     _cachedTemplateIdByName = templateIdByName;
     return templateIdByName;
   }
 
-  Map<String, String> _buildTemplateIdMapFromCsv(String csvText) {
+  Map<String, String> _buildTemplateIdMapFromCsv(
+    String csvText, {
+    required SmsLocalizations localizations,
+  }) {
     final lines = LineSplitter.split(csvText)
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
@@ -302,11 +342,12 @@ class TencentSmsClient {
       }
     }
 
+    // Tencent Cloud CSV export uses Chinese headers
     final idIndex = headerIndex['模板id'];
     final nameIndex = headerIndex['模板名称'];
     if (idIndex == null || nameIndex == null) {
-      throw const TencentSmsConfigException(
-        message: '验证码模板 CSV 表头不完整，请确保包含"模板ID"和"模板名称"，且文件为 UTF-8 编码',
+      throw TencentSmsConfigException(
+        message: localizations.templateCsvInvalidHeader,
       );
     }
 
