@@ -1,62 +1,113 @@
 import 'package:serverpod/serverpod.dart';
 import 'package:tencent_sms/tencent_sms.dart';
 
-/// Tencent Cloud SMS configuration extension for Serverpod.
+/// Keys for sensitive configuration in passwords.yaml.
+class TencentSmsPasswordKeys {
+  /// Key for Tencent Cloud Secret ID.
+  final String secretId;
+
+  /// Key for Tencent Cloud Secret Key.
+  final String secretKey;
+
+  const TencentSmsPasswordKeys({
+    this.secretId = 'tencentSmsSecretId',
+    this.secretKey = 'tencentSmsSecretKey',
+  });
+}
+
+/// Non-sensitive configuration values.
 ///
-/// Supports reading configuration from Serverpod's passwords.yaml.
+/// Pass these directly in code instead of putting in passwords.yaml.
+class TencentSmsAppConfig {
+  /// SMS SDK App ID from Tencent Cloud console.
+  final String smsSdkAppId;
+
+  /// SMS signature name (must be approved in Tencent Cloud console).
+  final String signName;
+
+  /// Region for Tencent Cloud SMS service.
+  final String region;
+
+  /// Verification template ID (optional, can use template name instead).
+  final String? verificationTemplateId;
+
+  /// Path to CSV file containing template mappings.
+  final String? templateCsvPath;
+
+  /// Template name for login verification.
+  final String? verificationTemplateNameLogin;
+
+  /// Template name for registration verification.
+  final String? verificationTemplateNameRegister;
+
+  /// Template name for password reset verification.
+  final String? verificationTemplateNameResetPassword;
+
+  const TencentSmsAppConfig({
+    required this.smsSdkAppId,
+    required this.signName,
+    this.region = 'ap-guangzhou',
+    this.verificationTemplateId,
+    this.templateCsvPath,
+    this.verificationTemplateNameLogin,
+    this.verificationTemplateNameRegister,
+    this.verificationTemplateNameResetPassword,
+  });
+}
+
+/// Tencent Cloud SMS configuration for Serverpod.
 ///
-/// ## passwords.yaml Configuration
+/// ## Usage
+///
+/// ### passwords.yaml (credentials only)
 ///
 /// ```yaml
 /// shared:
-///   tencentSmsSecretId: 'your-secret-id'          # Required
-///   tencentSmsSecretKey: 'your-secret-key'        # Required
-///   tencentSmsSdkAppId: '1400000000'              # Required
-///   tencentSmsSignName: 'YourSignName'            # Required
-///   tencentSmsRegion: 'ap-guangzhou'              # Optional, default ap-guangzhou
-///   tencentSmsVerificationTemplateId: '123456'   # Optional, verification template ID
-///   tencentSmsTemplateCsvPath: 'config/sms/templates.csv'  # Optional
-///   tencentSmsVerificationTemplateNameLogin: 'LoginTemplate'      # Optional
-///   tencentSmsVerificationTemplateNameRegister: 'RegisterTemplate'   # Optional
-///   tencentSmsVerificationTemplateNameResetPassword: 'ResetTemplate'  # Optional
-///   tencentSmsVerificationTemplateName: 'VerificationTemplate'  # Optional, legacy
+///   tencentSmsSecretId: 'your-secret-id'
+///   tencentSmsSecretKey: 'your-secret-key'
+/// ```
+///
+/// ### Code
+///
+/// ```dart
+/// final config = TencentSmsConfigServerpod.fromServerpod(
+///   pod,
+///   appConfig: TencentSmsAppConfig(
+///     smsSdkAppId: '1400000000',
+///     signName: 'YourSignName',
+///     templateCsvPath: 'config/sms/templates.csv',
+///     verificationTemplateNameLogin: 'Login',
+///     verificationTemplateNameRegister: 'Register',
+///     verificationTemplateNameResetPassword: 'ResetPassword',
+///   ),
+/// );
 /// ```
 class TencentSmsConfigServerpod {
   TencentSmsConfigServerpod._();
 
   /// Creates configuration from Serverpod Session.
   ///
-  /// Reads configuration from passwords.yaml.
-  ///
   /// [session] Serverpod Session object.
-  ///
-  /// Throws [StateError] if required configuration is missing.
-  static TencentSmsConfig fromSession(Session session) {
+  /// [appConfig] Non-sensitive configuration (required).
+  /// [passwordKeys] Custom keys for credentials in passwords.yaml.
+  static TencentSmsConfig fromSession(
+    Session session, {
+    required TencentSmsAppConfig appConfig,
+    TencentSmsPasswordKeys passwordKeys = const TencentSmsPasswordKeys(),
+  }) {
     return TencentSmsConfig(
-      secretId: _getPasswordOrThrow(session, 'tencentSmsSecretId'),
-      secretKey: _getPasswordOrThrow(session, 'tencentSmsSecretKey'),
-      smsSdkAppId: _getPasswordOrThrow(session, 'tencentSmsSdkAppId'),
-      signName: _getPasswordOrThrow(session, 'tencentSmsSignName'),
-      region:
-          session.serverpod.getPassword('tencentSmsRegion') ?? 'ap-guangzhou',
-      verificationTemplateId: session.serverpod.getPassword(
-        'tencentSmsVerificationTemplateId',
-      ),
-      templateCsvPath: session.serverpod.getPassword(
-        'tencentSmsTemplateCsvPath',
-      ),
-      verificationTemplateNameLogin: session.serverpod.getPassword(
-        'tencentSmsVerificationTemplateNameLogin',
-      ),
-      verificationTemplateNameRegister: session.serverpod.getPassword(
-        'tencentSmsVerificationTemplateNameRegister',
-      ),
-      verificationTemplateNameResetPassword: session.serverpod.getPassword(
-        'tencentSmsVerificationTemplateNameResetPassword',
-      ),
-      legacyVerificationTemplateName: session.serverpod.getPassword(
-        'tencentSmsVerificationTemplateName',
-      ),
+      secretId: _getPasswordOrThrow(session, passwordKeys.secretId),
+      secretKey: _getPasswordOrThrow(session, passwordKeys.secretKey),
+      smsSdkAppId: appConfig.smsSdkAppId,
+      signName: appConfig.signName,
+      region: appConfig.region,
+      verificationTemplateId: appConfig.verificationTemplateId,
+      templateCsvPath: appConfig.templateCsvPath,
+      verificationTemplateNameLogin: appConfig.verificationTemplateNameLogin,
+      verificationTemplateNameRegister:
+          appConfig.verificationTemplateNameRegister,
+      verificationTemplateNameResetPassword:
+          appConfig.verificationTemplateNameResetPassword,
     );
   }
 
@@ -65,37 +116,28 @@ class TencentSmsConfigServerpod {
   /// Used when no Session is available (e.g., during initialization).
   ///
   /// [serverpod] Serverpod instance.
-  ///
-  /// Throws [StateError] if required configuration is missing.
-  static TencentSmsConfig fromServerpod(Serverpod serverpod) {
+  /// [appConfig] Non-sensitive configuration (required).
+  /// [passwordKeys] Custom keys for credentials in passwords.yaml.
+  static TencentSmsConfig fromServerpod(
+    Serverpod serverpod, {
+    required TencentSmsAppConfig appConfig,
+    TencentSmsPasswordKeys passwordKeys = const TencentSmsPasswordKeys(),
+  }) {
     return TencentSmsConfig(
       secretId:
-          _getPasswordFromServerpodOrThrow(serverpod, 'tencentSmsSecretId'),
+          _getPasswordFromServerpodOrThrow(serverpod, passwordKeys.secretId),
       secretKey:
-          _getPasswordFromServerpodOrThrow(serverpod, 'tencentSmsSecretKey'),
-      smsSdkAppId:
-          _getPasswordFromServerpodOrThrow(serverpod, 'tencentSmsSdkAppId'),
-      signName:
-          _getPasswordFromServerpodOrThrow(serverpod, 'tencentSmsSignName'),
-      region: serverpod.getPassword('tencentSmsRegion') ?? 'ap-guangzhou',
-      verificationTemplateId: serverpod.getPassword(
-        'tencentSmsVerificationTemplateId',
-      ),
-      templateCsvPath: serverpod.getPassword(
-        'tencentSmsTemplateCsvPath',
-      ),
-      verificationTemplateNameLogin: serverpod.getPassword(
-        'tencentSmsVerificationTemplateNameLogin',
-      ),
-      verificationTemplateNameRegister: serverpod.getPassword(
-        'tencentSmsVerificationTemplateNameRegister',
-      ),
-      verificationTemplateNameResetPassword: serverpod.getPassword(
-        'tencentSmsVerificationTemplateNameResetPassword',
-      ),
-      legacyVerificationTemplateName: serverpod.getPassword(
-        'tencentSmsVerificationTemplateName',
-      ),
+          _getPasswordFromServerpodOrThrow(serverpod, passwordKeys.secretKey),
+      smsSdkAppId: appConfig.smsSdkAppId,
+      signName: appConfig.signName,
+      region: appConfig.region,
+      verificationTemplateId: appConfig.verificationTemplateId,
+      templateCsvPath: appConfig.templateCsvPath,
+      verificationTemplateNameLogin: appConfig.verificationTemplateNameLogin,
+      verificationTemplateNameRegister:
+          appConfig.verificationTemplateNameRegister,
+      verificationTemplateNameResetPassword:
+          appConfig.verificationTemplateNameResetPassword,
     );
   }
 

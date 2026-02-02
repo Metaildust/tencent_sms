@@ -1,35 +1,29 @@
-/// Tencent Cloud SMS Serverpod integration extension.
-///
-/// Supports reading configuration from Serverpod's passwords.yaml.
+/// Tencent Cloud SMS Serverpod integration.
 ///
 /// ## Quick Start
 ///
-/// 1. Configure in `config/passwords.yaml`:
+/// 1. Put credentials in `config/passwords.yaml`:
 ///
 /// ```yaml
 /// shared:
 ///   tencentSmsSecretId: 'your-secret-id'
 ///   tencentSmsSecretKey: 'your-secret-key'
-///   tencentSmsSdkAppId: '1400000000'
-///   tencentSmsSignName: 'YourSignName'
-///   tencentSmsRegion: 'ap-guangzhou'
-///   tencentSmsVerificationTemplateId: '123456'
 /// ```
 ///
-/// 2. Use in code:
+/// 2. Pass non-sensitive config directly:
 ///
 /// ```dart
 /// import 'package:tencent_sms_serverpod/tencent_sms_serverpod.dart';
 ///
-/// final config = TencentSmsConfigServerpod.fromSession(session);
-/// final client = TencentSmsClient(config);
-/// // Or with Chinese error messages:
-/// // final client = TencentSmsClient(config, localizations: const SmsLocalizationsZh());
-///
-/// await client.sendVerificationCode(
-///   phoneNumber: '+8613800138000',
-///   verificationCode: '123456',
+/// final config = TencentSmsConfigServerpod.fromServerpod(
+///   pod,
+///   appConfig: TencentSmsAppConfig(
+///     smsSdkAppId: '1400000000',
+///     signName: 'YourSignName',
+///     templateCsvPath: 'config/sms/templates.csv',
+///   ),
 /// );
+/// final client = TencentSmsClient(config);
 /// ```
 library tencent_sms_serverpod;
 

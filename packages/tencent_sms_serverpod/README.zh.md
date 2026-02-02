@@ -2,13 +2,13 @@
 
 [![pub package](https://img.shields.io/pub/v/tencent_sms_serverpod.svg)](https://pub.dev/packages/tencent_sms_serverpod)
 
-腾讯云短信的 Serverpod 集成扩展 - 支持从 passwords.yaml 读取配置。
+腾讯云短信的 Serverpod 集成。
 
 [English](README.md)
 
 ## 功能特性
 
-- **配置集成** - 从 Serverpod 的 `passwords.yaml` 读取腾讯云短信配置
+- **配置集成** - 从 `passwords.yaml` 读取凭据，其他配置直接传入
 - **回调辅助** - 提供与 `serverpod_auth_sms` 集成的回调辅助类
 - **完整导出** - 重新导出 `tencent_sms` 包的所有功能
 
@@ -16,30 +16,34 @@
 
 ```yaml
 dependencies:
-  tencent_sms_serverpod: ^0.1.0
+  tencent_sms_serverpod: ^0.1.2
 ```
 
 ## 配置
 
-在 `config/passwords.yaml` 中添加：
+### passwords.yaml（仅凭据）
 
 ```yaml
 shared:
-  # 必填项
   tencentSmsSecretId: 'your-secret-id'
   tencentSmsSecretKey: 'your-secret-key'
-  tencentSmsSdkAppId: '1400000000'
-  tencentSmsSignName: '你的签名'
+```
 
-  # 可选项
-  tencentSmsRegion: 'ap-guangzhou'  # 默认 ap-guangzhou
-  tencentSmsVerificationTemplateId: '123456'  # 验证码模板 ID
+### 代码（非敏感配置）
 
-  # CSV 模板映射（可选）
-  tencentSmsTemplateCsvPath: 'config/sms/templates.csv'
-  tencentSmsVerificationTemplateNameLogin: '登录验证码'
-  tencentSmsVerificationTemplateNameRegister: '注册验证码'
-  tencentSmsVerificationTemplateNameResetPassword: '重置密码验证码'
+```dart
+final config = TencentSmsConfigServerpod.fromServerpod(
+  pod,
+  appConfig: TencentSmsAppConfig(
+    smsSdkAppId: '1400000000',
+    signName: '你的签名',
+    region: 'ap-guangzhou',
+    templateCsvPath: 'config/sms/templates.csv',
+    verificationTemplateNameLogin: '登录',
+    verificationTemplateNameRegister: '注册',
+    verificationTemplateNameResetPassword: '修改密码',
+  ),
+);
 ```
 
 ## 快速开始
@@ -49,10 +53,15 @@ shared:
 ```dart
 import 'package:tencent_sms_serverpod/tencent_sms_serverpod.dart';
 
-// 在 Endpoint 中使用
 class MyEndpoint extends Endpoint {
   Future<void> sendCode(Session session, String phone) async {
-    final config = TencentSmsConfigServerpod.fromSession(session);
+    final config = TencentSmsConfigServerpod.fromSession(
+      session,
+      appConfig: TencentSmsAppConfig(
+        smsSdkAppId: '1400000000',
+        signName: '你的签名',
+      ),
+    );
     final client = TencentSmsClient(config);
 
     await client.sendVerificationCode(
@@ -74,14 +83,20 @@ import 'package:serverpod_auth_sms/serverpod_auth_sms.dart';
 void run(List<String> args) async {
   final pod = Serverpod(args, Protocol(), Endpoints());
 
-  // 创建腾讯云短信客户端
-  final smsConfig = TencentSmsConfigServerpod.fromServerpod(pod);
+  final smsConfig = TencentSmsConfigServerpod.fromServerpod(
+    pod,
+    appConfig: TencentSmsAppConfig(
+      smsSdkAppId: '1400000000',
+      signName: '你的签名',
+      templateCsvPath: 'config/sms/templates.csv',
+      verificationTemplateNameLogin: '登录',
+      verificationTemplateNameRegister: '注册',
+      verificationTemplateNameResetPassword: '修改密码',
+    ),
+  );
   final smsClient = TencentSmsClient(smsConfig);
-
-  // 创建回调辅助类
   final smsHelper = SmsAuthCallbackHelper(smsClient);
 
-  // 配置手机号存储
   final phoneIdStore = PhoneIdCryptoStore.fromPasswords(pod);
 
   pod.initializeAuthServices(
@@ -102,16 +117,32 @@ void run(List<String> args) async {
 
 ## API 参考
 
-### TencentSmsConfigServerpod
+### TencentSmsAppConfig
 
-从 Serverpod 配置创建腾讯云短信配置：
+非敏感配置：
 
 ```dart
-// 从 Session 创建（在 Endpoint 中使用）
-final config = TencentSmsConfigServerpod.fromSession(session);
+TencentSmsAppConfig(
+  smsSdkAppId: '1400000000',           // 必填
+  signName: '你的签名',                 // 必填
+  region: 'ap-guangzhou',               // 可选，默认: ap-guangzhou
+  verificationTemplateId: '123456',     // 可选
+  templateCsvPath: 'config/sms/templates.csv', // 可选
+  verificationTemplateNameLogin: '登录',       // 可选
+  verificationTemplateNameRegister: '注册',    // 可选
+  verificationTemplateNameResetPassword: '修改密码', // 可选
+)
+```
 
-// 从 Serverpod 实例创建（在初始化阶段使用）
-final config = TencentSmsConfigServerpod.fromServerpod(pod);
+### TencentSmsPasswordKeys
+
+自定义 passwords.yaml 中的凭据键名：
+
+```dart
+TencentSmsPasswordKeys(
+  secretId: 'myCustomSecretIdKey',   // 默认: tencentSmsSecretId
+  secretKey: 'myCustomSecretKeyKey', // 默认: tencentSmsSecretKey
+)
 ```
 
 ### SmsAuthCallbackHelper
@@ -121,7 +152,6 @@ final config = TencentSmsConfigServerpod.fromServerpod(pod);
 ```dart
 final helper = SmsAuthCallbackHelper(smsClient);
 
-// 可用的回调方法
 helper.sendForRegistration   // 注册验证码
 helper.sendForLogin          // 登录验证码
 helper.sendForBind           // 绑定验证码
@@ -132,22 +162,18 @@ helper.sendForResetPassword  // 重置密码验证码
 
 ### 腾讯云频率限制错误
 
-腾讯云对短信发送有频率限制，常见错误码：
-
 | 错误码 | 说明 | 解决方案 |
 |--------|------|----------|
 | `LimitExceeded.PhoneNumberOneHourLimit` | 单手机号1小时内发送数量超限 | 等待或在控制台调整限制 |
 | `LimitExceeded.PhoneNumberDailyLimit` | 单手机号日发送数量超限 | 同上 |
 | `LimitExceeded.PhoneNumberThirtySecondLimit` | 30秒内发送频率超限 | 前端添加冷却时间 |
 
-建议在前端实现发送冷却倒计时（如60秒），避免用户频繁点击触发限制。
-
 ### 签名和模板审核
 
 发送短信前需确保：
 1. 短信签名已在腾讯云控制台审核通过
 2. 短信模板已在腾讯云控制台审核通过
-3. `tencentSmsSignName` 配置值与审核通过的签名完全一致
+3. `signName` 配置值与审核通过的签名完全一致
 
 ## 相关包
 
