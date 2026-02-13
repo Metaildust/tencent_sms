@@ -16,7 +16,7 @@ Serverpod integration for Tencent Cloud SMS.
 
 ```yaml
 dependencies:
-  tencent_sms_serverpod: ^0.1.2
+  tencent_sms_serverpod: ^0.2.0
 ```
 
 ## Configuration

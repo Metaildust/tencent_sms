@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:tencent_cloud_api/tencent_cloud_api.dart';
 
 import 'sms_localizations.dart';
 import 'sms_send_response.dart';
@@ -60,9 +60,8 @@ class TencentSmsClient {
 
   final TencentSmsConfig config;
   final SmsLocalizations localizations;
-  final http.Client _client;
-  final bool _ownsClient;
   final LogCallback? _log;
+  late final TencentCloudApiClient _apiClient;
 
   Map<String, String>? _cachedTemplateIdByName;
   bool _templateMapLoaded = false;
@@ -79,15 +78,21 @@ class TencentSmsClient {
     http.Client? client,
     LogCallback? log,
   })  : localizations = localizations,
-        _client = client ?? http.Client(),
-        _ownsClient = client == null,
-        _log = log;
+        _log = log {
+    _apiClient = TencentCloudApiClient(
+      TencentCloudApiConfig(
+        secretId: config.secretId,
+        secretKey: config.secretKey,
+        region: config.region,
+      ),
+      client: client,
+      log: log == null ? null : (message) => log('[TencentSmsApi] $message'),
+    );
+  }
 
   /// 关闭客户端
   void close() {
-    if (_ownsClient) {
-      _client.close();
-    }
+    _apiClient.close();
   }
 
   /// 发送验证码短信（单个手机号）
@@ -232,42 +237,35 @@ class TencentSmsClient {
       if (senderId != null) 'SenderId': senderId,
     };
 
-    final payloadJson = jsonEncode(payload);
-    final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
-    final authorization = _buildAuthorization(
-      timestamp: timestamp,
-      payload: payloadJson,
-    );
-
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Host': _host,
-      'X-TC-Action': 'SendSms',
-      'X-TC-Version': _version,
-      'X-TC-Region': config.region,
-      'X-TC-Timestamp': '$timestamp',
-      'Authorization': authorization,
-    };
-
-    final response = await _client.post(
-      Uri.https(_host, '/'),
-      headers: headers,
-      body: payloadJson,
-    );
-
-    if (response.statusCode != 200) {
-      _log?.call(
-        '[TencentSms] http status error: ${response.statusCode} ${response.body}',
+    try {
+      final jsonBody = await _apiClient.post(
+        TencentCloudApiRequest(
+          host: _host,
+          service: _service,
+          action: 'SendSms',
+          version: _version,
+          payload: payload,
+        ),
       );
+      return SmsSendResponse.fromJson(jsonBody);
+    } on TencentCloudApiHttpException catch (e) {
       throw TencentSmsHttpException(
-        statusCode: response.statusCode,
+        statusCode: e.statusCode,
         message: localizations.httpRequestFailed,
       );
+    } on TencentCloudApiResponseException catch (e) {
+      _log?.call('[TencentSms] invalid response: $e');
+      throw TencentSmsSendException(
+        message: localizations.smsSendFailed(e.message),
+        code: e.code,
+      );
+    } on TencentCloudApiException catch (e) {
+      _log?.call('[TencentSms] api error: $e');
+      throw TencentSmsSendException(
+        message: localizations.smsSendFailed(e.message),
+        code: e.code,
+      );
     }
-
-    final Map<String, dynamic> jsonBody =
-        jsonDecode(response.body) as Map<String, dynamic>;
-    return SmsSendResponse.fromJson(jsonBody);
   }
 
   Future<String?> _resolveVerificationTemplateId({
@@ -397,47 +395,6 @@ class TencentSmsClient {
     return result;
   }
 
-  String _buildAuthorization({
-    required int timestamp,
-    required String payload,
-  }) {
-    final date = DateTime.fromMillisecondsSinceEpoch(
-      timestamp * 1000,
-      isUtc: true,
-    );
-    final dateString = '${date.year.toString().padLeft(4, '0')}'
-        '-${date.month.toString().padLeft(2, '0')}'
-        '-${date.day.toString().padLeft(2, '0')}';
-
-    final canonicalHeaders = 'content-type:application/json\n'
-        'host:$_host\n'
-        'x-tc-action:sendsms\n';
-    const signedHeaders = 'content-type;host;x-tc-action';
-    final hashedPayload = _sha256Hex(payload);
-    final canonicalRequest =
-        'POST\n/\n\n$canonicalHeaders\n$signedHeaders\n$hashedPayload';
-    final hashedCanonicalRequest = _sha256Hex(canonicalRequest);
-
-    final credentialScope = '$dateString/$_service/tc3_request';
-    final stringToSign = 'TC3-HMAC-SHA256\n'
-        '$timestamp\n'
-        '$credentialScope\n'
-        '$hashedCanonicalRequest';
-
-    final secretDate = _hmacSha256(
-      utf8.encode('TC3${config.secretKey}'),
-      dateString,
-    );
-    final secretService = _hmacSha256(secretDate, _service);
-    final secretSigning = _hmacSha256(secretService, 'tc3_request');
-    final signature = _hmacSha256Hex(secretSigning, stringToSign);
-
-    return 'TC3-HMAC-SHA256 '
-        'Credential=${config.secretId}/$credentialScope, '
-        'SignedHeaders=$signedHeaders, '
-        'Signature=$signature';
-  }
-
   /// 标准化手机号码为 E.164 格式
   String _normalizePhoneNumber(String input) {
     final value = input.trim();
@@ -452,19 +409,5 @@ class TencentSmsClient {
       return '+86$digitsOnly';
     }
     return value;
-  }
-
-  List<int> _hmacSha256(List<int> key, String msg) {
-    final hmac = Hmac(sha256, key);
-    return hmac.convert(utf8.encode(msg)).bytes;
-  }
-
-  String _hmacSha256Hex(List<int> key, String msg) {
-    final hmac = Hmac(sha256, key);
-    return hmac.convert(utf8.encode(msg)).toString();
-  }
-
-  String _sha256Hex(String input) {
-    return sha256.convert(utf8.encode(input)).toString();
   }
 }

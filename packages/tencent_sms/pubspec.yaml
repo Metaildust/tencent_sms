@@ -1,6 +1,6 @@
 name: tencent_sms
 description: Tencent Cloud SMS SDK for Dart/Flutter - verification code, batch send, CSV template mapping
-version: 0.1.1
+version: 0.2.0
 repository: https://github.com/Metaildust/tencent_sms
 homepage: https://pub.dev/packages/tencent_sms
 
@@ -8,8 +8,8 @@ environment:
   sdk: ^3.0.0
 
 dependencies:
-  crypto: ^3.0.0
   http: ^1.0.0
+  tencent_cloud_api: ^0.2.0
 
 dev_dependencies:
   test: ^1.24.0

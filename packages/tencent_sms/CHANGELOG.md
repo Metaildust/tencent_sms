@@ -1,3 +1,20 @@
+## 0.2.0
+
+- Synchronized release version for the Tencent Cloud API package family
+- Update dependency to `tencent_cloud_api: ^0.2.0`
+- Keep `TencentSmsClient` API unchanged
+
+## 0.1.3
+
+- Remove local `dependency_overrides` from package pubspec for external publishing
+- Update dependency to `tencent_cloud_api: ^0.1.1`
+
+## 0.1.2
+
+- Refactor Tencent Cloud API transport into `tencent_cloud_api`
+- Keep `TencentSmsClient` public API unchanged while reusing shared TC3 signer/client
+- Prepare shared foundation for other Tencent Cloud services (such as content moderation)
+
 ## 0.1.1
 
 - **Breaking Change**: Error messages are now in English by default

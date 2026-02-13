@@ -1,4 +1,5 @@
 import 'package:serverpod/serverpod.dart';
+import 'package:tencent_cloud_api_serverpod/tencent_cloud_api_serverpod.dart';
 import 'package:tencent_sms/tencent_sms.dart';
 
 /// Keys for sensitive configuration in passwords.yaml.
@@ -13,6 +14,13 @@ class TencentSmsPasswordKeys {
     this.secretId = 'tencentSmsSecretId',
     this.secretKey = 'tencentSmsSecretKey',
   });
+
+  TencentCloudApiPasswordKeys toApiPasswordKeys() {
+    return TencentCloudApiPasswordKeys(
+      secretId: secretId,
+      secretKey: secretKey,
+    );
+  }
 }
 
 /// Non-sensitive configuration values.
@@ -95,12 +103,18 @@ class TencentSmsConfigServerpod {
     required TencentSmsAppConfig appConfig,
     TencentSmsPasswordKeys passwordKeys = const TencentSmsPasswordKeys(),
   }) {
+    final apiConfig = TencentCloudApiConfigServerpod.fromSession(
+      session,
+      appConfig: TencentCloudApiAppConfig(region: appConfig.region),
+      passwordKeys: passwordKeys.toApiPasswordKeys(),
+    );
+
     return TencentSmsConfig(
-      secretId: _getPasswordOrThrow(session, passwordKeys.secretId),
-      secretKey: _getPasswordOrThrow(session, passwordKeys.secretKey),
+      secretId: apiConfig.secretId,
+      secretKey: apiConfig.secretKey,
       smsSdkAppId: appConfig.smsSdkAppId,
       signName: appConfig.signName,
-      region: appConfig.region,
+      region: apiConfig.region,
       verificationTemplateId: appConfig.verificationTemplateId,
       templateCsvPath: appConfig.templateCsvPath,
       verificationTemplateNameLogin: appConfig.verificationTemplateNameLogin,
@@ -123,14 +137,18 @@ class TencentSmsConfigServerpod {
     required TencentSmsAppConfig appConfig,
     TencentSmsPasswordKeys passwordKeys = const TencentSmsPasswordKeys(),
   }) {
+    final apiConfig = TencentCloudApiConfigServerpod.fromServerpod(
+      serverpod,
+      appConfig: TencentCloudApiAppConfig(region: appConfig.region),
+      passwordKeys: passwordKeys.toApiPasswordKeys(),
+    );
+
     return TencentSmsConfig(
-      secretId:
-          _getPasswordFromServerpodOrThrow(serverpod, passwordKeys.secretId),
-      secretKey:
-          _getPasswordFromServerpodOrThrow(serverpod, passwordKeys.secretKey),
+      secretId: apiConfig.secretId,
+      secretKey: apiConfig.secretKey,
       smsSdkAppId: appConfig.smsSdkAppId,
       signName: appConfig.signName,
-      region: appConfig.region,
+      region: apiConfig.region,
       verificationTemplateId: appConfig.verificationTemplateId,
       templateCsvPath: appConfig.templateCsvPath,
       verificationTemplateNameLogin: appConfig.verificationTemplateNameLogin,
@@ -139,22 +157,5 @@ class TencentSmsConfigServerpod {
       verificationTemplateNameResetPassword:
           appConfig.verificationTemplateNameResetPassword,
     );
-  }
-
-  static String _getPasswordOrThrow(Session session, String key) {
-    final value = session.serverpod.getPassword(key);
-    if (value == null || value.isEmpty) {
-      throw StateError('$key must be configured in passwords.yaml');
-    }
-    return value;
-  }
-
-  static String _getPasswordFromServerpodOrThrow(
-      Serverpod serverpod, String key) {
-    final value = serverpod.getPassword(key);
-    if (value == null || value.isEmpty) {
-      throw StateError('$key must be configured in passwords.yaml');
-    }
-    return value;
   }
 }

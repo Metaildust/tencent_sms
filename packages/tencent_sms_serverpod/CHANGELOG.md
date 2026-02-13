@@ -1,3 +1,19 @@
+## 0.2.0
+
+- Synchronized release version for the Tencent Cloud API package family
+- Update dependencies to `tencent_sms: ^0.2.0` and `tencent_cloud_api_serverpod: ^0.2.0`
+- Keep `TencentSmsConfigServerpod` API unchanged
+
+## 0.1.4
+
+- Remove local `dependency_overrides` from package pubspec for external publishing
+- Update dependencies to `tencent_sms: ^0.1.3` and `tencent_cloud_api_serverpod: ^0.1.1`
+
+## 0.1.3
+
+- Reuse shared `tencent_cloud_api_serverpod` credential loader
+- Keep `TencentSmsConfigServerpod` API unchanged while removing duplicated password reading logic
+
 ## 0.1.2
 
 - **Breaking**: Separate sensitive and non-sensitive configuration

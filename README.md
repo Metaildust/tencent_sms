@@ -19,7 +19,7 @@ Tencent Cloud SMS SDK for Dart/Flutter - Supporting verification code sending, b
 
 ```yaml
 dependencies:
-  tencent_sms: ^0.1.0
+  tencent_sms: ^0.2.0
 ```
 
 ## Quick Start
@@ -160,7 +160,7 @@ If you use Serverpod, we recommend using `tencent_sms_serverpod` package for rea
 
 ```yaml
 dependencies:
-  tencent_sms_serverpod: ^0.1.2
+  tencent_sms_serverpod: ^0.2.0
 ```
 
 See [tencent_sms_serverpod](https://pub.dev/packages/tencent_sms_serverpod) for details.

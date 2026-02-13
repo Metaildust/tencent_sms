@@ -19,7 +19,7 @@
 
 ```yaml
 dependencies:
-  tencent_sms: ^0.1.0
+  tencent_sms: ^0.2.0
 ```
 
 ## 快速开始
@@ -180,7 +180,7 @@ try {
 
 ```yaml
 dependencies:
-  tencent_sms_serverpod: ^0.1.2
+  tencent_sms_serverpod: ^0.2.0
 ```
 
 详见 [tencent_sms_serverpod](https://pub.dev/packages/tencent_sms_serverpod)。

@@ -1,0 +1,12 @@
+name: tencent_cloud_api_serverpod
+description: Serverpod helpers for Tencent Cloud API credentials in passwords.yaml.
+version: 0.2.0
+repository: https://github.com/Metaildust/tencent_sms
+homepage: https://pub.dev/packages/tencent_cloud_api_serverpod
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  serverpod: ^3.0.0
+  tencent_cloud_api: ^0.2.0
