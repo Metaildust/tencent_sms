@@ -1,0 +1,13 @@
+name: tencent_content_moderation_serverpod
+description: Serverpod integration helpers for Tencent content moderation.
+version: 0.1.0
+repository: https://github.com/Metaildust/tencent_sms
+homepage: https://pub.dev/packages/tencent_content_moderation_serverpod
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  serverpod: ^3.0.0
+  tencent_cloud_api_serverpod: ^0.2.0
+  tencent_content_moderation: ^0.1.0
