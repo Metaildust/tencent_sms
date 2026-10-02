@@ -2,7 +2,12 @@
 
 [![pub package](https://img.shields.io/pub/v/tencent_content_moderation.svg)](https://pub.dev/packages/tencent_content_moderation)
 
-Typed Dart SDK for Tencent Cloud content moderation APIs (text + image), with normalized verdicts and typed models.
+Typed Dart SDK for Tencent Cloud content moderation APIs (text + image + video tasks), with normalized verdicts and typed models.
+
+> **BREAKING CHANGE in 0.2.0** — Video moderation now only accepts a `fileUrl`
+> (publicly reachable, e.g. a presigned COS URL). The previous COS direct
+> input mode (`StorageInfo.cos(BucketInfo(...))`) was removed. See
+> [`CHANGELOG.md`](CHANGELOG.md) for migration steps and rationale.
 
 ## Coverage
 
@@ -11,7 +16,7 @@ Typed Dart SDK for Tencent Cloud content moderation APIs (text + image), with no
 | Text | TMS | `TextModeration` | Yes |
 | Image | IMS | `ImageModeration` | Yes |
 | Audio | AMS | Async task APIs | Models reserved, not implemented yet |
-| Video | VM | Async task APIs | Models reserved, not implemented yet |
+| Video | VM | Async task APIs | Yes (task create + query, URL only since 0.2.0) |
 
 ## Activation Checklist (Tencent Cloud)
 
@@ -55,7 +60,7 @@ For least privilege, grant only required actions (such as `tms:TextModeration` a
 
 ```yaml
 dependencies:
-  tencent_content_moderation: ^0.1.0
+  tencent_content_moderation: ^0.2.0
 ```
 
 ## Features
@@ -121,6 +126,27 @@ final result = await client.moderateImage(
     bizType: 'scene',
     dataId: 'problem-2001-image-inline',
   ),
+);
+```
+
+### Create video moderation task
+
+Video moderation only accepts a publicly reachable `fileUrl`. Generate a
+presigned `GET` URL on your own COS bucket (or any other origin VM can
+reach) and pass it as `fileUrl`.
+
+```dart
+final task = await client.createVideoModerationTask(
+  const VideoModerationTaskInput(
+    fileUrl: 'https://example.com/video.mp4',
+    bizType: 'scene',
+    dataId: 'video-3001',
+    callbackUrl: 'https://api.example.com/moderation/callback',
+  ),
+);
+
+final detail = await client.queryModerationTask(
+  ModerationTaskQueryInput(taskId: task.taskId),
 );
 ```
 

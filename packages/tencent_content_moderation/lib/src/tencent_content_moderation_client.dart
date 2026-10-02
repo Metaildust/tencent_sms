@@ -19,9 +19,34 @@ class TencentContentModerationClient {
     http.Client? client,
     TencentCloudApiClient? apiClient,
     TencentContentModerationLogCallback? log,
-  })  : _apiClient = apiClient ?? TencentCloudApiClient(config, client: client),
+  })  : _apiClient = _openClient(config, client: client, apiClient: apiClient),
         _ownsApiClient = apiClient == null,
         _log = log;
+
+  /// 密钥去掉空白后为空则在建客户端时失败，请求不会发出。
+  static TencentCloudApiClient _openClient(
+    TencentCloudApiConfig config, {
+    required http.Client? client,
+    required TencentCloudApiClient? apiClient,
+  }) {
+    final secretId = config.secretId.trim();
+    final secretKey = config.secretKey.trim();
+    if (secretId.isEmpty || secretKey.isEmpty) {
+      throw const TencentContentModerationConfigException(
+        message: 'secretId and secretKey cannot be blank',
+      );
+    }
+    final checked =
+        (secretId == config.secretId && secretKey == config.secretKey)
+            ? config
+            : TencentCloudApiConfig(
+                secretId: secretId,
+                secretKey: secretKey,
+                region: config.region,
+                token: config.token,
+              );
+    return apiClient ?? TencentCloudApiClient(checked, client: client);
+  }
 
   /// Closes owned HTTP resources.
   void close() {
@@ -103,17 +128,104 @@ class TencentContentModerationClient {
     );
   }
 
-  /// Phase-2 extension point for async video moderation task creation.
-  Future<void> createVideoModerationTask(VideoModerationTaskInput input) {
-    throw UnsupportedError(
-      'Video moderation task APIs are planned for phase-2.',
+  /// Creates async video moderation task with Tencent VM API.
+  Future<VideoModerationTaskResult> createVideoModerationTask(
+    VideoModerationTaskInput input,
+  ) async {
+    _ensureValidVideoTaskInput(input);
+    final envelope = await _sendModerationRequest(
+      TencentCloudApiRequest(
+        host: TencentContentModerationApiConstants.videoHost,
+        service: TencentContentModerationApiConstants.videoService,
+        action: TencentContentModerationApiConstants.videoAction,
+        version: TencentContentModerationApiConstants.videoVersion,
+        payload: input.toPayload(),
+      ),
+    );
+
+    final response = envelope.response;
+    final taskId = _resolveTaskId(response);
+    if (taskId == null) {
+      throw TencentContentModerationResponseException(
+        message: 'Video moderation task id is missing',
+        details: envelope.rawBody.toString(),
+      );
+    }
+
+    return VideoModerationTaskResult(
+      taskId: taskId,
+      requestId: _requireRequestId(response),
+      dataId: _resolveTaskDataId(response),
+      rawResponse: envelope.rawBody,
     );
   }
 
-  /// Phase-2 extension point for async moderation task query.
-  Future<void> queryModerationTask(ModerationTaskQueryInput input) {
-    throw UnsupportedError(
-      'Moderation task query APIs are planned for phase-2.',
+  /// Queries async moderation task status with Tencent VM API.
+  Future<VideoModerationTaskDetail> queryModerationTask(
+    ModerationTaskQueryInput input,
+  ) async {
+    _ensureValidTaskQueryInput(input);
+    final envelope = await _sendModerationRequest(
+      TencentCloudApiRequest(
+        host: TencentContentModerationApiConstants.videoHost,
+        service: TencentContentModerationApiConstants.videoService,
+        action: TencentContentModerationApiConstants.videoQueryAction,
+        version: TencentContentModerationApiConstants.videoVersion,
+        payload: input.toPayload(),
+      ),
+    );
+
+    final response = envelope.response;
+    final taskPayload = _extractTaskPayload(response);
+    final statusText = _asNonEmptyString(taskPayload['Status']) ??
+        _asNonEmptyString(response['Status']);
+    final status = moderationTaskStatusFromValue(statusText);
+    final decisionText = _asNonEmptyString(taskPayload['Suggestion']) ??
+        _asNonEmptyString(response['Suggestion']);
+    // 总建议缺失、空串或只有空白时落到复审。明细里的拦截不抬成整单。
+    final suggested = moderationDecisionFromSuggestion(decisionText);
+    // 任务失败或响应带结构化错误时，建议为通过或复审都不能保持原值。
+    final failed = videoTaskFailed(
+      status: status,
+      payload: taskPayload,
+      extra: response,
+    );
+    final decision = closedVideoDecision(
+      status: status,
+      decision: suggested,
+      payload: taskPayload,
+      extra: response,
+    );
+    final fallbackDecision = decision ?? ModerationDecision.review;
+    final hits = closedVideoHits(
+      _parseVideoTaskHits(
+        taskPayload,
+        fallbackDecision: fallbackDecision,
+      ),
+      failed: failed,
+    );
+
+    final taskId = _asNonEmptyString(taskPayload['TaskId']) ??
+        _asNonEmptyString(taskPayload['TaskID']) ??
+        _asNonEmptyString(response['TaskId']) ??
+        input.taskId;
+
+    return VideoModerationTaskDetail(
+      taskId: taskId,
+      status: status,
+      decision: decision,
+      requestId: _requireRequestId(response),
+      dataId: _asNonEmptyString(taskPayload['DataId']) ??
+          _asNonEmptyString(response['DataId']),
+      bizType: _asNonEmptyString(taskPayload['BizType']) ??
+          _asNonEmptyString(response['BizType']),
+      label: _asNonEmptyString(taskPayload['Label']) ??
+          _asNonEmptyString(response['Label']),
+      subLabel: _asNonEmptyString(taskPayload['SubLabel']) ??
+          _asNonEmptyString(response['SubLabel']),
+      score: _asDouble(taskPayload['Score']) ?? _asDouble(response['Score']),
+      hits: hits,
+      rawResponse: envelope.rawBody,
     );
   }
 
@@ -137,6 +249,32 @@ class TencentContentModerationClient {
       throw const TencentContentModerationConfigException(
         message:
             'ImageModerationInput accepts only one source: fileUrl or fileBase64',
+      );
+    }
+  }
+
+  void _ensureValidVideoTaskInput(VideoModerationTaskInput input) {
+    final trimmed = _asNonEmptyString(input.fileUrl);
+    if (trimmed == null) {
+      throw const TencentContentModerationConfigException(
+        message: 'VideoModerationTaskInput.fileUrl cannot be empty',
+      );
+    }
+    final uri = Uri.tryParse(trimmed);
+    final scheme = uri?.scheme.toLowerCase();
+    if (uri == null ||
+        !uri.hasScheme ||
+        (scheme != 'http' && scheme != 'https')) {
+      throw const TencentContentModerationConfigException(
+        message: 'VideoModerationTaskInput.fileUrl must be a valid http(s) URL',
+      );
+    }
+  }
+
+  void _ensureValidTaskQueryInput(ModerationTaskQueryInput input) {
+    if (input.taskId.trim().isEmpty) {
+      throw const TencentContentModerationConfigException(
+        message: 'ModerationTaskQueryInput.taskId cannot be empty',
       );
     }
   }
@@ -263,6 +401,58 @@ class TencentContentModerationClient {
     return hits;
   }
 
+  List<ModerationHit> _parseVideoTaskHits(
+    Map<String, dynamic> response, {
+    required ModerationDecision fallbackDecision,
+  }) {
+    const listKeys = <String>[
+      'Labels',
+      'LabelResults',
+      'ObjectResults',
+      'OCRResults',
+      'AsrResults',
+      'LibResults',
+      'Results',
+      'DetailResults',
+    ];
+
+    final hits = <ModerationHit>[];
+    for (final key in listKeys) {
+      final rows = _asMapList(response[key]);
+      for (final row in rows) {
+        hits.add(
+          _buildHit(
+            row,
+            source: key,
+            fallbackDecision: fallbackDecision,
+          ),
+        );
+      }
+    }
+
+    if (hits.isEmpty) {
+      final labelName = _asNonEmptyString(response['Label']) ??
+          _asNonEmptyString(response['Scene']) ??
+          _asNonEmptyString(response['Suggestion']);
+      if (labelName != null) {
+        hits.add(
+          ModerationHit(
+            decision: fallbackDecision,
+            label: ModerationLabel(
+              name: labelName,
+              subLabel: _asNonEmptyString(response['SubLabel']),
+              scene: _asNonEmptyString(response['Scene']),
+              score: _asDouble(response['Score']),
+            ),
+            keywords: _extractKeywords(response),
+            raw: response,
+          ),
+        );
+      }
+    }
+    return hits;
+  }
+
   ModerationHit _buildHit(
     Map<String, dynamic> item, {
     required String source,
@@ -329,7 +519,7 @@ class TencentContentModerationClient {
     return values.toList();
   }
 
-  String? _asNonEmptyString(dynamic value) {
+  static String? _asNonEmptyString(dynamic value) {
     if (value == null) return null;
     final text = value.toString().trim();
     if (text.isEmpty) return null;
@@ -368,6 +558,74 @@ class TencentContentModerationClient {
       return value.map(
         (key, value) => MapEntry(key.toString(), value),
       );
+    }
+    return null;
+  }
+
+  String? _resolveTaskId(Map<String, dynamic> response) {
+    final data = _asMap(response['Data']);
+    return _asNonEmptyString(response['TaskId']) ??
+        _asNonEmptyString(response['TaskID']) ??
+        _asNonEmptyString(data?['TaskId']) ??
+        _asNonEmptyString(data?['TaskID']) ??
+        _resolveTaskIdFromRows(response['Tasks']) ??
+        _resolveTaskIdFromRows(data?['Tasks']) ??
+        _resolveTaskIdFromRows(response['Results']) ??
+        _resolveTaskIdFromRows(data?['Results']);
+  }
+
+  String? _resolveTaskDataId(Map<String, dynamic> response) {
+    final data = _asMap(response['Data']);
+    return _asNonEmptyString(response['DataId']) ??
+        _asNonEmptyString(data?['DataId']) ??
+        _resolveFieldFromRows(response['Results'], 'DataId') ??
+        _resolveFieldFromRows(data?['Results'], 'DataId') ??
+        _resolveFieldFromRows(response['Tasks'], 'DataId') ??
+        _resolveFieldFromRows(data?['Tasks'], 'DataId');
+  }
+
+  String? _resolveTaskIdFromRows(dynamic value) {
+    if (value is! List) return null;
+    for (final item in value) {
+      final row = _asMap(item);
+      if (row == null) continue;
+      final taskId =
+          _asNonEmptyString(row['TaskId']) ?? _asNonEmptyString(row['TaskID']);
+      if (taskId != null) return taskId;
+    }
+    return null;
+  }
+
+  String? _resolveFieldFromRows(dynamic value, String field) {
+    if (value is! List) return null;
+    for (final item in value) {
+      final row = _asMap(item);
+      if (row == null) continue;
+      final resolved = _asNonEmptyString(row[field]);
+      if (resolved != null) return resolved;
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _extractTaskPayload(Map<String, dynamic> response) {
+    final directTask = _asMap(response['Task']);
+    if (directTask != null) return directTask;
+    final taskInfo = _asMap(response['TaskInfo']);
+    if (taskInfo != null) return taskInfo;
+    final data = _asMap(response['Data']);
+    if (data != null) return data;
+    final result = _asMap(response['Result']);
+    if (result != null) return result;
+    final firstTask = _firstTaskFromRows(response['Tasks']);
+    if (firstTask != null) return firstTask;
+    return response;
+  }
+
+  Map<String, dynamic>? _firstTaskFromRows(dynamic value) {
+    if (value is! List) return null;
+    for (final item in value) {
+      final row = _asMap(item);
+      if (row != null) return row;
     }
     return null;
   }

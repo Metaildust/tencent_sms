@@ -1,3 +1,7 @@
+## 0.2.1
+
+- Document the required `appConfig` argument in the callback helper example
+
 ## 0.2.0
 
 - Synchronized release version for the Tencent Cloud API package family

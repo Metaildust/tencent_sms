@@ -1,3 +1,8 @@
+## 0.2.1
+
+- Trim `secretId` and `secretKey` before signing
+- Reject a blank secret before any HTTP request
+
 ## 0.2.0
 
 - Synchronized release version for the Tencent Cloud API package family

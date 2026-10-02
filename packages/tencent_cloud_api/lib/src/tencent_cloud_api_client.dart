@@ -28,13 +28,18 @@ class TencentCloudApiClient {
   final bool _ownsClient;
   final TencentCloudApiLogCallback? _log;
 
+  /// 测试注入的秒级时间戳。不传时仍用当前时间。
+  final int? _fixedTimestamp;
+
   TencentCloudApiClient(
     this.config, {
     http.Client? client,
     TencentCloudApiLogCallback? log,
+    int? fixedTimestamp,
   })  : _client = client ?? http.Client(),
         _ownsClient = client == null,
-        _log = log;
+        _log = log,
+        _fixedTimestamp = fixedTimestamp;
 
   /// Closes the owned HTTP client.
   void close() {
@@ -46,15 +51,25 @@ class TencentCloudApiClient {
   /// Sends a signed POST request and returns parsed JSON body.
   Future<Map<String, dynamic>> post(TencentCloudApiRequest request) async {
     _validateCustomHeaders(request.headers);
+    final secretId = config.secretId.trim();
+    final secretKey = config.secretKey.trim();
+    if (secretId.isEmpty || secretKey.isEmpty) {
+      throw const TencentCloudApiRequestException(
+        message: 'secretId and secretKey cannot be blank',
+      );
+    }
 
     final payloadJson = jsonEncode(request.payload);
-    final timestamp = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+    final timestamp = _fixedTimestamp ??
+        DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
     final authorization = _buildAuthorization(
       timestamp: timestamp,
       payload: payloadJson,
       host: request.host,
       action: request.action,
       service: request.service,
+      secretId: secretId,
+      secretKey: secretKey,
     );
 
     final headers = <String, String>{
@@ -125,6 +140,8 @@ class TencentCloudApiClient {
     required String host,
     required String action,
     required String service,
+    required String secretId,
+    required String secretKey,
   }) {
     final date = DateTime.fromMillisecondsSinceEpoch(
       timestamp * 1000,
@@ -150,7 +167,7 @@ class TencentCloudApiClient {
         '$hashedCanonicalRequest';
 
     final secretDate = _hmacSha256(
-      utf8.encode('TC3${config.secretKey}'),
+      utf8.encode('TC3$secretKey'),
       dateString,
     );
     final secretService = _hmacSha256(secretDate, service);
@@ -158,7 +175,7 @@ class TencentCloudApiClient {
     final signature = _hmacSha256Hex(secretSigning, stringToSign);
 
     return 'TC3-HMAC-SHA256 '
-        'Credential=${config.secretId}/$credentialScope, '
+        'Credential=$secretId/$credentialScope, '
         'SignedHeaders=$signedHeaders, '
         'Signature=$signature';
   }

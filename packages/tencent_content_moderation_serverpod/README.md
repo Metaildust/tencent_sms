@@ -4,11 +4,18 @@
 
 Serverpod integration for `tencent_content_moderation`.
 
+> **BREAKING CHANGE in 0.2.0** — `submitVideoModerationForStorage(StorageInfo)`
+> was removed. Video moderation is URL-only; submit a publicly reachable
+> `videoUrl` (e.g. a presigned `GET` URL on the caller-owned COS bucket)
+> via `submitVideoModeration(...)`. See [`CHANGELOG.md`](CHANGELOG.md)
+> for the full migration guide.
+
 This package helps you:
 
 - load Tencent credentials from `passwords.yaml`
 - configure default region and BizType values
 - use a server-oriented `ContentModerationService`
+- submit video moderation tasks with a URL input
 - share a process-level singleton via `ContentModerationServiceStore`
 
 ## When to use this package
@@ -18,13 +25,14 @@ Use this package if your Serverpod backend needs moderation for:
 - username/profile updates
 - publish-time text checks (title/body/answer/explanation)
 - image URL moderation
+- video moderation task submission before async polling/callback handling
 - unified moderation entrypoints across endpoints/services
 
 ## Installation
 
 ```yaml
 dependencies:
-  tencent_content_moderation_serverpod: ^0.1.0
+  tencent_content_moderation_serverpod: ^0.2.0
 ```
 
 ## Tencent Cloud Activation Checklist
@@ -83,6 +91,7 @@ final moderationConfig = TencentContentModerationConfigServerpod.fromServerpod(
     region: 'ap-guangzhou',
     defaultTextBizType: 'default-text-policy',
     defaultImageBizType: 'default-image-policy',
+    defaultVideoBizType: 'default-video-policy',
   ),
 );
 ```
@@ -98,6 +107,7 @@ final moderationConfig = TencentContentModerationConfigServerpod.fromServerpod(
     region: 'ap-guangzhou',
     defaultTextBizType: 'username',
     defaultImageBizType: 'scene',
+    defaultVideoBizType: 'scene',
   ),
 );
 
@@ -150,6 +160,21 @@ final verdict = await ContentModerationServiceStore.instance.reviewText(
   device: const ModerationDevice(ip: '1.2.3.4', platform: 'ios'),
 );
 ```
+
+### Submit video moderation task (URL only since 0.2.0)
+
+```dart
+final task = await ContentModerationServiceStore.instance.submitVideoModeration(
+  'https://example.com/video.mp4',
+  dataId: 'video-1001',
+);
+```
+
+For a private COS object, generate a presigned `GET` URL on the caller-
+owned bucket and pass it as the `videoUrl` argument above. The previous
+`submitVideoModerationForStorage(StorageInfo)` helper has been removed
+together with the cross-account COS direct-input mode in
+`tencent_content_moderation` 0.2.0.
 
 ## Verdict and Operational Notes
 

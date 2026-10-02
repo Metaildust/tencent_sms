@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:tencent_sms/tencent_sms.dart';
 import 'package:test/test.dart';
 
@@ -113,6 +115,28 @@ void main() {
       );
 
       expect(config.templateCsvPath, isNull);
+    });
+
+    test('blank secretKey throws and does not send', () {
+      var called = false;
+      final config = TencentSmsConfig(
+        secretId: 'test-id',
+        secretKey: '   ',
+        smsSdkAppId: 'app-id',
+        signName: 'Sign',
+      );
+
+      expect(
+        () => TencentSmsClient(
+          config,
+          client: MockClient((request) async {
+            called = true;
+            return http.Response('{}', 200);
+          }),
+        ),
+        throwsA(isA<TencentSmsConfigException>()),
+      );
+      expect(called, isFalse);
     });
 
     test('accepts templateCsvPath for CSV-based template resolution', () {

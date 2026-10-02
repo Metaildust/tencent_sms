@@ -4,8 +4,14 @@
 
 `tencent_content_moderation` 的 Serverpod 集成封装，负责：
 
+> **0.2.0 BREAKING CHANGE** — `submitVideoModerationForStorage(StorageInfo)`
+> 已删除。视频审核只接受 URL 入参，请通过 `submitVideoModeration(...)`
+> 传入公网可达的 `videoUrl`（例如自己 COS 桶生成的 `GET` 预签名 URL）。
+> 完整迁移指引见 [`CHANGELOG.md`](CHANGELOG.md)。
+
 - 从 `passwords.yaml` 读取密钥
 - 生成 `ContentModerationService` 并统一调用文本/图片审核
+- 统一提交视频审核任务（URL）
 - 输出服务端业务更易使用的 `ContentModerationVerdict`
 
 ## 适用场景
@@ -15,13 +21,14 @@
 - 用户昵称、资料字段审核
 - 题目/答案/解析等发布前审核
 - 图片 URL 审核
+- 视频审核任务提交与轮询前置封装
 - 审核服务统一接入（含默认 BizType）
 
 ## 安装
 
 ```yaml
 dependencies:
-  tencent_content_moderation_serverpod: ^0.1.0
+  tencent_content_moderation_serverpod: ^0.2.0
 ```
 
 ## 开通与准备（腾讯云侧）
@@ -84,6 +91,7 @@ final moderationConfig = TencentContentModerationConfigServerpod.fromServerpod(
     region: 'ap-guangzhou',
     defaultTextBizType: 'default-text-policy',
     defaultImageBizType: 'default-image-policy',
+    defaultVideoBizType: 'default-video-policy',
   ),
 );
 ```
@@ -99,6 +107,7 @@ final moderationConfig = TencentContentModerationConfigServerpod.fromServerpod(
     region: 'ap-guangzhou',
     defaultTextBizType: 'username',
     defaultImageBizType: 'scene',
+    defaultVideoBizType: 'scene',
   ),
 );
 
@@ -149,6 +158,20 @@ final verdict = await ContentModerationServiceStore.instance.reviewText(
   device: const ModerationDevice(ip: '1.2.3.4', platform: 'ios'),
 );
 ```
+
+### 提交视频审核任务（0.2.0 起仅支持 URL）
+
+```dart
+final task = await ContentModerationServiceStore.instance.submitVideoModeration(
+  'https://example.com/video.mp4',
+  dataId: 'video-1001',
+);
+```
+
+如果要审核私有 COS 对象，请在调用方自己的桶上生成 `GET` 预签名 URL，
+然后作为上面的 `videoUrl` 入参。原本的
+`submitVideoModerationForStorage(StorageInfo)` helper 与 `tencent_content_moderation`
+0.2.0 中的跨账号 COS 直传模式一并删除。
 
 ## 返回值与业务建议
 

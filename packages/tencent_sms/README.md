@@ -123,8 +123,8 @@ for (final status in response.statuses) {
 | `smsSdkAppId` | Yes | SMS SDK AppID |
 | `signName` | Yes | SMS signature |
 | `region` | No | Region, default `ap-guangzhou` |
-| `verificationTemplateId` | No | Verification template ID (highest priority) |
-| `templateCsvPath` | No | Template CSV file path |
+| `verificationTemplateId` | No | Global verification template ID. Used only when the scene CSV has no matching ID, or the file cannot be read |
+| `templateCsvPath` | No | Scene template CSV path (exported from Tencent Cloud console) |
 | `verificationTemplateNameLogin` | No | Login template name |
 | `verificationTemplateNameRegister` | No | Registration template name |
 | `verificationTemplateNameResetPassword` | No | Password reset template name |

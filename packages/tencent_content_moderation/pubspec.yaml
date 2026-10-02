@@ -1,11 +1,12 @@
 name: tencent_content_moderation
+resolution: workspace
 description: Tencent Cloud content moderation SDK for Dart and Flutter.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/Metaildust/tencent_sms
 homepage: https://pub.dev/packages/tencent_content_moderation
 
 environment:
-  sdk: ^3.0.0
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   http: ^1.0.0

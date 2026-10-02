@@ -2,7 +2,12 @@
 
 [![pub package](https://img.shields.io/pub/v/tencent_content_moderation.svg)](https://pub.dev/packages/tencent_content_moderation)
 
-腾讯云内容审核 Dart SDK（文本 + 图片），提供强类型请求/响应、统一审核结论和原始响应保留能力。
+腾讯云内容审核 Dart SDK（文本 + 图片 + 视频任务），提供强类型请求/响应、统一审核结论和原始响应保留能力。
+
+> **0.2.0 BREAKING CHANGE** — 视频审核只接受 `fileUrl`（公网可达的 URL，例如
+> 自己 COS 桶生成的预签名 URL）。原本的 COS 直传模式
+> （`StorageInfo.cos(BucketInfo(...))`）已删除。迁移指引与决策依据见
+> [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 这个包覆盖什么
 
@@ -11,7 +16,7 @@
 | 文本 | TMS | `TextModeration` | Yes |
 | 图片 | IMS | `ImageModeration` | Yes |
 | 音频 | AMS | 异步任务接口 | 预留模型，暂未实现 |
-| 视频 | VM | 异步任务接口 | 预留模型，暂未实现 |
+| 视频 | VM | 异步任务接口 | Yes（创建任务 + 查询任务，0.2.0 起仅支持 URL） |
 
 ## 开通与准备（腾讯云侧）
 
@@ -59,7 +64,7 @@
 
 ```yaml
 dependencies:
-  tencent_content_moderation: ^0.1.0
+  tencent_content_moderation: ^0.2.0
 ```
 
 ## 快速开始
@@ -121,6 +126,26 @@ final result = await client.moderateImage(
     bizType: 'scene',
     dataId: 'problem-2001-image-inline',
   ),
+);
+```
+
+### 视频审核任务
+
+视频审核只接受公网可达的 `fileUrl`。请在自己的 COS 桶（或其他腾讯云 VM
+能访问到的源）上生成 `GET` 预签名 URL，再传入 `fileUrl`。
+
+```dart
+final task = await client.createVideoModerationTask(
+  const VideoModerationTaskInput(
+    fileUrl: 'https://example.com/video.mp4',
+    bizType: 'scene',
+    dataId: 'video-3001',
+    callbackUrl: 'https://api.example.com/moderation/callback',
+  ),
+);
+
+final detail = await client.queryModerationTask(
+  ModerationTaskQueryInput(taskId: task.taskId),
 );
 ```
 

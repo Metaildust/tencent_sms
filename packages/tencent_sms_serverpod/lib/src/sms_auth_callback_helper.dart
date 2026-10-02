@@ -13,7 +13,13 @@ import 'package:tencent_sms/tencent_sms.dart';
 ///   final pod = Serverpod(args, Protocol(), Endpoints());
 ///
 ///   // Create Tencent Cloud SMS client
-///   final smsConfig = TencentSmsConfigServerpod.fromServerpod(pod);
+///   final smsConfig = TencentSmsConfigServerpod.fromServerpod(
+///     pod,
+///     appConfig: TencentSmsAppConfig(
+///       smsSdkAppId: '1400000000',
+///       signName: 'YourSignName',
+///     ),
+///   );
 ///   final smsClient = TencentSmsClient(smsConfig);
 ///   // Or with Chinese error messages:
 ///   // final smsClient = TencentSmsClient(smsConfig, localizations: const SmsLocalizationsZh());

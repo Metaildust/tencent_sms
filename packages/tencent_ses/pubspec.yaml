@@ -1,0 +1,16 @@
+name: tencent_ses
+resolution: workspace
+description: Tencent Cloud SES (Simple Email Service) SDK for Dart/Flutter.
+version: 0.1.1
+repository: https://github.com/Metaildust/tencent_sms
+homepage: https://pub.dev/packages/tencent_ses
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  http: ^1.0.0
+  tencent_cloud_api: ^0.2.0
+
+dev_dependencies:
+  test: ^1.24.0

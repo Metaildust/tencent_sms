@@ -61,17 +61,25 @@ class TencentCloudApiConfigServerpod {
     );
   }
 
-  static String _getPasswordOrThrow(Serverpod serverpod, String key) {
-    final value = serverpod.getPassword(key);
+  /// 读取必填密钥。去掉空白后为空则抛配置错误，不把空白当成有效密钥。
+  static String readRequiredPassword(
+    String? Function(String key) getPassword,
+    String key,
+  ) {
+    final value = getPassword(key)?.trim();
     if (value == null || value.isEmpty) {
       throw StateError('$key must be configured in passwords.yaml');
     }
     return value;
   }
 
+  static String _getPasswordOrThrow(Serverpod serverpod, String key) {
+    return readRequiredPassword(serverpod.getPassword, key);
+  }
+
   static String? _getOptionalPassword(Serverpod serverpod, String? key) {
     if (key == null || key.isEmpty) return null;
-    final value = serverpod.getPassword(key);
+    final value = serverpod.getPassword(key)?.trim();
     if (value == null || value.isEmpty) return null;
     return value;
   }

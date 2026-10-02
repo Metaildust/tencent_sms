@@ -9,6 +9,7 @@ class ContentModerationService {
   final bool _ownsClient;
   final String? _defaultTextBizType;
   final String? _defaultImageBizType;
+  final String? _defaultVideoBizType;
 
   ContentModerationService(
     TencentContentModerationServerpodConfig config, {
@@ -16,7 +17,8 @@ class ContentModerationService {
   })  : _client = client ?? TencentContentModerationClient(config.apiConfig),
         _ownsClient = client == null,
         _defaultTextBizType = _normalize(config.defaultTextBizType),
-        _defaultImageBizType = _normalize(config.defaultImageBizType);
+        _defaultImageBizType = _normalize(config.defaultImageBizType),
+        _defaultVideoBizType = _normalize(config.defaultVideoBizType);
 
   /// Closes owned resources.
   void close() {
@@ -63,6 +65,43 @@ class ContentModerationService {
       ),
     );
     return ContentModerationVerdict.fromImageResult(result);
+  }
+
+  /// Submits async video moderation task and returns task metadata.
+  ///
+  /// Video moderation is URL-only since 0.2.0. Pass a publicly reachable
+  /// URL (e.g. a presigned `GET` URL on the caller-owned COS bucket) as
+  /// [videoUrl]. The previous COS direct-input helper
+  /// `submitVideoModerationForStorage` was removed; see
+  /// `package:tencent_content_moderation` 0.2.0 CHANGELOG for migration.
+  Future<VideoModerationTaskResult> submitVideoModeration(
+    String videoUrl, {
+    String? bizType,
+    String? dataId,
+    String? callbackUrl,
+    String? seed,
+    ModerationUser? user,
+    ModerationDevice? device,
+  }) async {
+    return _client.createVideoModerationTask(
+      VideoModerationTaskInput(
+        fileUrl: videoUrl,
+        bizType: _resolveBizType(bizType, _defaultVideoBizType),
+        dataId: _normalize(dataId),
+        callbackUrl: _normalize(callbackUrl),
+        seed: _normalize(seed),
+        user: user,
+        device: device,
+      ),
+    );
+  }
+
+  /// Queries async video moderation task and returns domain-level verdict.
+  Future<VideoModerationTaskVerdict> queryVideoModeration(String taskId) async {
+    final detail = await _client.queryModerationTask(
+      ModerationTaskQueryInput(taskId: taskId),
+    );
+    return VideoModerationTaskVerdict.fromVideoTaskDetail(detail);
   }
 
   String? _resolveBizType(String? override, String? fallback) {

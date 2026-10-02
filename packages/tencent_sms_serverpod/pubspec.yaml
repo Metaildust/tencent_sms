@@ -1,13 +1,19 @@
 name: tencent_sms_serverpod
+resolution: workspace
 description: Tencent Cloud SMS Serverpod integration - reads config from passwords.yaml
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/Metaildust/tencent_sms
 homepage: https://pub.dev/packages/tencent_sms_serverpod
 
 environment:
-  sdk: ^3.0.0
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   tencent_sms: ^0.2.0
   tencent_cloud_api_serverpod: ^0.2.0
   serverpod: ^3.0.0
+
+dev_dependencies:
+  http: ^1.0.0
+  mocktail: ^1.0.0
+  test: ^1.24.0

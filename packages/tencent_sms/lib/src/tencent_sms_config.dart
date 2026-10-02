@@ -54,7 +54,7 @@ class TencentSmsConfig {
   /// 地域信息（默认 ap-guangzhou）
   final String region;
 
-  /// 验证码模板 ID（优先级最高）
+  /// 全局验证码模板编号。场景表查出非空编号时不用它，只在场景名空、表里没有或编号为空时兜底。
   final String? verificationTemplateId;
 
   /// 模板 CSV 文件路径（UTF-8 编码，需包含"模板ID"和"模板名称"列）

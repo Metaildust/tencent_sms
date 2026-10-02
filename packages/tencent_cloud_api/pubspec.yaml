@@ -1,11 +1,12 @@
 name: tencent_cloud_api
+resolution: workspace
 description: Tencent Cloud API 3.0 core client for Dart/Flutter with TC3-HMAC-SHA256 signing.
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/Metaildust/tencent_sms
 homepage: https://pub.dev/packages/tencent_cloud_api
 
 environment:
-  sdk: ^3.0.0
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   crypto: ^3.0.0

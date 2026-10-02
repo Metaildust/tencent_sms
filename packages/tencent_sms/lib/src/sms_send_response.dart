@@ -90,8 +90,10 @@ class SmsSendResponse {
     this.error,
   });
 
-  /// 是否全部发送成功
-  bool get isOk => error == null && statuses.every((s) => s.isOk);
+  /// 是否全部发送成功。
+  /// 空状态必须失败关闭：Dart 的空列表 `every` 为 true，不能把没发出去当成成功。
+  bool get isOk =>
+      error == null && statuses.isNotEmpty && statuses.every((s) => s.isOk);
 
   factory SmsSendResponse.fromJson(Map<String, dynamic> json) {
     final response = json['Response'] as Map<String, dynamic>? ?? {};

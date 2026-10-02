@@ -79,10 +79,17 @@ class TencentSmsClient {
     LogCallback? log,
   })  : localizations = localizations,
         _log = log {
+    final secretId = config.secretId.trim();
+    final secretKey = config.secretKey.trim();
+    if (secretId.isEmpty || secretKey.isEmpty) {
+      throw const TencentSmsConfigException(
+        message: 'secretId and secretKey cannot be blank',
+      );
+    }
     _apiClient = TencentCloudApiClient(
       TencentCloudApiConfig(
-        secretId: config.secretId,
-        secretKey: config.secretKey,
+        secretId: secretId,
+        secretKey: secretKey,
         region: config.region,
       ),
       client: client,
@@ -217,20 +224,28 @@ class TencentSmsClient {
     String? extendCode,
     String? senderId,
   }) async {
-    if (phoneNumbers.isEmpty) {
+    final phoneNumberSet = phoneNumbers
+        .map(_normalizePhoneNumber)
+        .where((phone) => phone.isNotEmpty)
+        .toList();
+    if (phoneNumberSet.isEmpty) {
       throw TencentSmsConfigException(
         message: localizations.phoneNumbersEmpty,
       );
     }
 
+    final trimmedTemplateId = templateId.trim();
+    if (trimmedTemplateId.isEmpty) {
+      throw TencentSmsConfigException(
+        message: localizations.verificationTemplateNotConfigured,
+      );
+    }
+
     final payload = <String, dynamic>{
-      'PhoneNumberSet': phoneNumbers
-          .map(_normalizePhoneNumber)
-          .where((e) => e.isNotEmpty)
-          .toList(),
+      'PhoneNumberSet': phoneNumberSet,
       'SmsSdkAppId': smsSdkAppId ?? config.smsSdkAppId,
       'SignName': signName ?? config.signName,
-      'TemplateId': templateId,
+      'TemplateId': trimmedTemplateId,
       'TemplateParamSet': templateParams,
       if (sessionContext != null) 'SessionContext': sessionContext,
       if (extendCode != null) 'ExtendCode': extendCode,
@@ -268,26 +283,37 @@ class TencentSmsClient {
     }
   }
 
+  /// 场景表能打开且该场景编号去掉空白后非空时，返回场景编号。
+  /// 不在函数开头因全局编号非空就返回。表打开后的兜底，以及没有表路径时的兜底，都先 trim。
   Future<String?> _resolveVerificationTemplateId({
     String? templateName,
   }) async {
-    final configuredId = config.verificationTemplateId;
-    if (configuredId != null && configuredId.isNotEmpty) {
-      return configuredId;
-    }
-
-    final csvPath = config.templateCsvPath?.trim();
-    if (csvPath == null || csvPath.isEmpty) {
-      return null;
-    }
-
     final normalizedName = templateName?.trim();
-    if (normalizedName == null || normalizedName.isEmpty) {
-      return null;
+    if (normalizedName != null && normalizedName.isNotEmpty) {
+      final csvPath = config.templateCsvPath?.trim();
+      if (csvPath != null && csvPath.isNotEmpty) {
+        try {
+          final templateIdByName = await _loadTemplateIdMap(csvPath: csvPath);
+          final sceneId = templateIdByName[normalizedName]?.trim();
+          if (sceneId != null && sceneId.isNotEmpty) {
+            return sceneId;
+          }
+        } on TencentSmsConfigException {
+          final globalId = _trimmedGlobalTemplateId();
+          if (globalId != null) return globalId;
+          rethrow;
+        }
+      }
     }
 
-    final templateIdByName = await _loadTemplateIdMap(csvPath: csvPath);
-    return templateIdByName[normalizedName];
+    return _trimmedGlobalTemplateId();
+  }
+
+  /// 全局模板编号去掉空白。空白视为没有配置。
+  String? _trimmedGlobalTemplateId() {
+    final configuredId = config.verificationTemplateId?.trim();
+    if (configuredId == null || configuredId.isEmpty) return null;
+    return configuredId;
   }
 
   Future<Map<String, String>> _loadTemplateIdMap({
@@ -296,16 +322,8 @@ class TencentSmsClient {
     if (_templateMapLoaded && _cachedTemplateIdByName != null) {
       return _cachedTemplateIdByName!;
     }
-    _templateMapLoaded = true;
 
-    final file = File(csvPath);
-    if (!await file.exists()) {
-      throw TencentSmsConfigException(
-        message: localizations.templateCsvNotFound(csvPath),
-      );
-    }
-
-    final bytes = await file.readAsBytes();
+    final bytes = await _readCsvBytes(csvPath);
     String text;
     try {
       text = utf8.decode(bytes);
@@ -318,7 +336,25 @@ class TencentSmsClient {
       localizations: localizations,
     );
     _cachedTemplateIdByName = templateIdByName;
+    _templateMapLoaded = true;
     return templateIdByName;
+  }
+
+  /// 不先看 File.exists：目录也会返回 false，读字节才会抛「是目录」。
+  /// 读失败不写入缓存，避免下次把坏文件当成空表。
+  Future<List<int>> _readCsvBytes(String csvPath) async {
+    try {
+      return await File(csvPath).readAsBytes();
+    } on PathNotFoundException {
+      throw TencentSmsConfigException(
+        message: localizations.templateCsvNotFound(csvPath),
+      );
+    } on FileSystemException catch (error) {
+      final detail = error.osError?.message ?? error.message;
+      throw TencentSmsConfigException(
+        message: '${localizations.templateCsvNotFound(csvPath)} ($detail)',
+      );
+    }
   }
 
   Map<String, String> _buildTemplateIdMapFromCsv(

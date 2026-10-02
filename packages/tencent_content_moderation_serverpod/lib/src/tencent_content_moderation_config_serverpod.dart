@@ -38,10 +38,14 @@ class TencentContentModerationAppConfig {
   /// Default image moderation strategy (BizType).
   final String? defaultImageBizType;
 
+  /// Default video moderation strategy (BizType).
+  final String? defaultVideoBizType;
+
   const TencentContentModerationAppConfig({
     this.region = 'ap-guangzhou',
     this.defaultTextBizType,
     this.defaultImageBizType,
+    this.defaultVideoBizType,
   });
 }
 
@@ -50,11 +54,13 @@ class TencentContentModerationServerpodConfig {
   final TencentCloudApiConfig apiConfig;
   final String? defaultTextBizType;
   final String? defaultImageBizType;
+  final String? defaultVideoBizType;
 
   const TencentContentModerationServerpodConfig({
     required this.apiConfig,
     this.defaultTextBizType,
     this.defaultImageBizType,
+    this.defaultVideoBizType,
   });
 }
 
@@ -79,6 +85,7 @@ class TencentContentModerationConfigServerpod {
       apiConfig: apiConfig,
       defaultTextBizType: _normalize(appConfig.defaultTextBizType),
       defaultImageBizType: _normalize(appConfig.defaultImageBizType),
+      defaultVideoBizType: _normalize(appConfig.defaultVideoBizType),
     );
   }
 
@@ -99,6 +106,7 @@ class TencentContentModerationConfigServerpod {
       apiConfig: apiConfig,
       defaultTextBizType: _normalize(appConfig.defaultTextBizType),
       defaultImageBizType: _normalize(appConfig.defaultImageBizType),
+      defaultVideoBizType: _normalize(appConfig.defaultVideoBizType),
     );
   }
 

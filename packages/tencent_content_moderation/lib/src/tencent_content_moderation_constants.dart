@@ -15,4 +15,8 @@ class TencentContentModerationApiConstants {
   // Phase-2 extension points for async moderation tasks.
   static const String audioHost = 'ams.tencentcloudapi.com';
   static const String videoHost = 'vm.tencentcloudapi.com';
+  static const String videoService = 'vm';
+  static const String videoAction = 'CreateVideoModerationTask';
+  static const String videoVersion = '2021-09-22';
+  static const String videoQueryAction = 'DescribeTaskDetail';
 }

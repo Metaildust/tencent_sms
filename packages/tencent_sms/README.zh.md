@@ -143,8 +143,8 @@ final config = TencentSmsConfig(
 | `smsSdkAppId` | 是 | 短信应用 SDK AppID |
 | `signName` | 是 | 短信签名内容 |
 | `region` | 否 | 地域，默认 `ap-guangzhou` |
-| `verificationTemplateId` | 否 | 验证码模板 ID（优先级最高）|
-| `templateCsvPath` | 否 | 模板 CSV 文件路径 |
+| `verificationTemplateId` | 否 | 全局验证码模板 ID。场景表有对应编号时用表里的，没有或表打不开时才用它 |
+| `templateCsvPath` | 否 | 场景模板 CSV 路径（腾讯云控制台导出） |
 | `verificationTemplateNameLogin` | 否 | 登录模板名称 |
 | `verificationTemplateNameRegister` | 否 | 注册模板名称 |
 | `verificationTemplateNameResetPassword` | 否 | 重置密码模板名称 |

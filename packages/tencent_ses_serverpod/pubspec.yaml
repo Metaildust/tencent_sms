@@ -1,0 +1,17 @@
+name: tencent_ses_serverpod
+resolution: workspace
+description: Tencent Cloud SES Serverpod integration - reads config from passwords.yaml
+version: 0.1.0
+repository: https://github.com/Metaildust/tencent_sms
+homepage: https://pub.dev/packages/tencent_ses_serverpod
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  serverpod: ^3.0.0
+  tencent_cloud_api_serverpod: ^0.2.0
+  tencent_ses: ^0.1.0
+
+dev_dependencies:
+  test: ^1.24.0

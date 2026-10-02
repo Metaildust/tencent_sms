@@ -1,3 +1,9 @@
+## 0.2.1
+
+- Treat a missing or empty `SendStatusSet` as a failed send
+- Do not send when the verification template id or every phone number is blank
+- Reject a blank `secretId` or `secretKey` before any request
+
 ## 0.2.0
 
 - Synchronized release version for the Tencent Cloud API package family
